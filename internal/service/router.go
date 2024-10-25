@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/rs/zerolog"
@@ -77,30 +76,6 @@ func (m *Service) fiberMiddlewareInitialization() {
 		loggerPool.Put(logger)
 		return
 	})
-
-	// limiter
-	if gCli.Bool("limiter-enable") {
-		limitederr := fiber.NewError(fiber.StatusTooManyRequests, "to many requests has been sended, please wait and try again")
-
-		m.fb.Use(limiter.New(limiter.Config{
-			Next: func(c *fiber.Ctx) bool {
-				return c.IP() == "127.0.0.1" || gCli.App.Version == "localbuilded"
-			},
-
-			Max:        gCli.Int("limiter-max-req"),
-			Expiration: gCli.Duration("limiter-records-duration"),
-
-			KeyGenerator: func(c *fiber.Ctx) string {
-				return c.IP()
-			},
-
-			LimitReached: func(c *fiber.Ctx) error {
-				return c.App().ErrorHandler(c, limitederr)
-			},
-
-			Storage: m.fbstor,
-		}))
-	}
 
 	// panic recover for all handlers
 	m.fb.Use(recover.New(recover.Config{

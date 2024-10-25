@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/diode"
 	"github.com/urfave/cli/v2"
@@ -18,7 +17,7 @@ import (
 	"github.com/MindHunter86/asmas/internal/utils"
 )
 
-var version = "devel" // -ldflags="-X main.version=X.X.X"
+var version = "local" // -ldflags="-X main.version=X.X.X"
 var buildtime = "never"
 
 func main() {
@@ -93,15 +92,9 @@ func main() {
 			log.Info().Msg("zerolog reinitialized; starting app...")
 		}
 
-		if !fiber.IsChild() {
-			log.Info().Msgf("system cpu count %d", runtime.NumCPU())
-			log.Info().Msgf("cmdline - %v", os.Args)
-			log.Debug().Msgf("environment - %v", os.Environ())
-		} else {
-			log.Info().Msgf("system cpu count %d", runtime.NumCPU())
-			log.Info().Msgf("old cpu count %d", runtime.GOMAXPROCS(1))
-			log.Info().Msgf("new cpu count %d", runtime.GOMAXPROCS(1))
-		}
+		log.Info().Msgf("system cpu count %d", runtime.NumCPU())
+		log.Info().Msgf("cmdline - %v", os.Args)
+		log.Debug().Msgf("environment - %v", os.Environ())
 
 		log.Debug().Msgf("%s (%s) builded %s now is ready...", app.Name, version, buildtime)
 		return service.NewService(c, &log, syslogWriter).Bootstrap()

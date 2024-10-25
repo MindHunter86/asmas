@@ -6,7 +6,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func flagsInitialization(expertMode bool) []cli.Flag {
+func flagsInitialization(expertmode bool) []cli.Flag {
 	return []cli.Flag{
 		// common settings
 		&cli.StringFlag{
@@ -34,7 +34,7 @@ func flagsInitialization(expertMode bool) []cli.Flag {
 			Name:     "syslog-proto",
 			Category: "Syslog settings",
 			Usage:    "syslog protocol (optional); tcp or udp is possible",
-			Value:    "tcp",
+			Value:    "udp",
 			EnvVars:  []string{"SYSLOG_PROTO"},
 		},
 		&cli.StringFlag{
@@ -42,7 +42,7 @@ func flagsInitialization(expertMode bool) []cli.Flag {
 			Category: "Syslog settings",
 			Usage:    "optional setting; more information in syslog RFC",
 			Value:    "",
-			Hidden:   expertMode,
+			Hidden:   expertmode,
 		},
 
 		// fiber-server settings
@@ -61,16 +61,7 @@ func flagsInitialization(expertMode bool) []cli.Flag {
 			Name:     "http-realip-header",
 			Category: "HTTP server settings",
 			Value:    "X-Real-Ip",
-		},
-		&cli.BoolFlag{
-			Name:     "http-prefork",
-			Category: "HTTP server settings",
-			Usage: `enables use of the SO_REUSEPORT socket option;
-			if enabled, the application will need to be ran
-			through a shell because prefork mode sets environment variables;
-			EXPERIMENTAL! USE CAREFULLY!`,
-			Hidden:             expertMode,
-			DisableDefaultText: true,
+			Hidden:   expertmode,
 		},
 		&cli.DurationFlag{
 			Name:     "http-read-timeout",
@@ -92,52 +83,23 @@ func flagsInitialization(expertMode bool) []cli.Flag {
 			Category:           "HTTP server settings",
 			Usage:              "enable golang http-pprof methods",
 			DisableDefaultText: true,
+			Hidden:             expertmode,
 		},
 		&cli.StringFlag{
 			Name:     "http-pprof-prefix",
 			Category: "HTTP server settings",
 			Usage:    "it should start with (but not end with) a slash. Example: '/test'",
+			Value:    "/internal",
 			EnvVars:  []string{"PPROF_PREFIX"},
+			Hidden:   expertmode,
 		},
 		&cli.StringFlag{
 			Name:     "http-pprof-secret",
 			Category: "HTTP server settings",
 			Usage:    "define static secret in x-pprof-secret header for avoiding unauthorized access",
+			Value:    "changemeplease",
 			EnvVars:  []string{"PPROF_SECRET"},
-		},
-
-		// limiter settings
-		&cli.BoolFlag{
-			Name:               "limiter-enable",
-			Category:           "Limiter settings",
-			Hidden:             expertMode,
-			DisableDefaultText: true,
-		},
-		&cli.BoolFlag{
-			Name:               "limiter-use-bbolt",
-			Category:           "Limiter settings",
-			Usage:              "use bbolt key\value file database instead of memory database",
-			Hidden:             expertMode,
-			DisableDefaultText: true,
-		},
-		&cli.BoolFlag{
-			Name:               "limiter-bbolt-reset",
-			Category:           "Limiter settings",
-			Usage:              "if bbolt used as storage, reset all limited IPs on startup",
-			Hidden:             expertMode,
-			DisableDefaultText: true,
-		},
-		&cli.IntFlag{
-			Name:     "limiter-max-req",
-			Category: "Limiter settings",
-			Hidden:   expertMode,
-			Value:    200,
-		},
-		&cli.DurationFlag{
-			Name:     "limiter-records-duration",
-			Category: "Limiter settings",
-			Hidden:   expertMode,
-			Value:    5 * time.Minute,
+			Hidden:   expertmode,
 		},
 	}
 }
