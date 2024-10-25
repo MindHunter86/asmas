@@ -47,7 +47,6 @@ func NewService(c *cli.Context, l *zerolog.Logger, s io.Writer) *Service {
 	service.syslogWriter = s
 
 	appname := fmt.Sprintf("%s/%s", c.App.Name, c.App.Version)
-	errdesc := "error provided by " + appname + " service"
 
 	service.fb = fiber.New(fiber.Config{
 		EnableTrustedProxyCheck: len(gCli.String("http-trusted-proxies")) > 0,
@@ -64,9 +63,9 @@ func NewService(c *cli.Context, l *zerolog.Logger, s io.Writer) *Service {
 
 		DisablePreParseMultipartForm: true,
 
-		IdleTimeout:  gCli.Duration("http-idle-timeout"),
-		ReadTimeout:  gCli.Duration("http-read-timeout"),
-		WriteTimeout: gCli.Duration("http-write-timeout"),
+		IdleTimeout:  gCli.Duration("http-timeout-idle"),
+		ReadTimeout:  gCli.Duration("http-timeout-read"),
+		WriteTimeout: gCli.Duration("http-timeout-write"),
 
 		DisableDefaultContentType: true,
 
@@ -75,50 +74,7 @@ func NewService(c *cli.Context, l *zerolog.Logger, s io.Writer) *Service {
 			fiber.MethodGet,
 		},
 
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			// reject invalid requests
-			if strings.TrimSpace(c.Hostname()) == "" {
-				gLog.Warn().Msg("invalid request from " + c.Context().RemoteIP().String())
-				gLog.Debug().Msgf("invalid request: %+v ; error - %+v", c, err)
-				return c.Context().Conn().Close()
-			}
-
-			// apiv1 error style:
-			c.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
-
-			// `rspcode` - apiv1 legacy hardcode
-			// if u have 4XX or 5XX in service, u must respond with 200
-			rspcode, respond :=
-				fiber.StatusOK,
-				func(status int, msg, desc string) {
-					// !!!
-					// !!!
-					// !!!
-					// !!!
-					// !!!
-					// if e := utils.RespondWithApiError(status, msg, desc, c); e != nil {
-					// 	rlog(c).Error().Msg("could not respond with JSON error - " + e.Error())
-					// }
-				}
-
-			// ? not profitable
-			// TODO too much allocations here:
-			ferr := AcquireFErr()
-			defer ReleaseFErr(ferr)
-
-			// parse fiber error
-			if !errors.As(err, &ferr) {
-				respond(fiber.StatusInternalServerError, err.Error(), errdesc)
-				return c.SendStatus(rspcode)
-			}
-
-			if zerolog.GlobalLevel() <= zerolog.DebugLevel {
-				rlog(c).Debug().Msgf("%+v", err)
-			}
-
-			respond(ferr.Code, ferr.Error(), errdesc)
-			return c.SendStatus(rspcode)
-		},
+		ErrorHandler: service.fb.ErrorHandler,
 	})
 
 	return service
@@ -209,24 +165,4 @@ LOOP:
 	}
 
 	return
-}
-
-// TODO 2delete
-// I think this block of code is not profitable
-// so may be it must be reverted
-
-var ferrPool = sync.Pool{
-	New: func() interface{} {
-		return new(fiber.Error)
-	},
-}
-
-func AcquireFErr() *fiber.Error {
-	return ferrPool.Get().(*fiber.Error)
-}
-
-func ReleaseFErr(e *fiber.Error) {
-	// ? is it required
-	e.Code, e.Message = 0, ""
-	ferrPool.Put(e)
 }

@@ -128,9 +128,12 @@ func (m *Service) fiberMiddlewareInitialization() {
 func (m *Service) fiberRouterInitialization() {
 	//
 	// ASMAS internal cache api
+	m.fb.Get("/healthz", nil)
 
 	//
-	// ASMAS apiv1 requests proxying lifecycle:
+	// ASMAS public v1 api
+	v1 := m.fb.Group("/v1", nil)
 
-	// step1 - ???
+	v1.Get("/certificates/public/:name", nil)
+	v1.Get("/certificates/private/:name", nil)
 }

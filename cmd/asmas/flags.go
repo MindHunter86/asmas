@@ -10,14 +10,16 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 	return []cli.Flag{
 		// common settings
 		&cli.StringFlag{
-			Name:    "log-level",
-			Value:   "info",
-			Usage:   "levels: trace, debug, info, warn, err, panic, disabled",
-			Aliases: []string{"l"},
-			EnvVars: []string{"LOG_LEVEL"},
+			Name:     "log-level",
+			Category: "Common settings",
+			Value:    "info",
+			Usage:    "levels: trace, debug, info, warn, err, panic, disabled",
+			Aliases:  []string{"l"},
+			EnvVars:  []string{"LOG_LEVEL"},
 		},
 		&cli.BoolFlag{
 			Name:               "expert-mode",
+			Category:           "Common settings",
 			Usage:              "show hidden flags",
 			DisableDefaultText: true,
 		},
@@ -64,17 +66,17 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			Hidden:   expertmode,
 		},
 		&cli.DurationFlag{
-			Name:     "http-read-timeout",
+			Name:     "http-timeout-read",
 			Category: "HTTP server settings",
 			Value:    10 * time.Second,
 		},
 		&cli.DurationFlag{
-			Name:     "http-write-timeout",
+			Name:     "http-timeout-write",
 			Category: "HTTP server settings",
 			Value:    5 * time.Second,
 		},
 		&cli.DurationFlag{
-			Name:     "http-idle-timeout",
+			Name:     "http-timeout-idle",
 			Category: "HTTP server settings",
 			Value:    10 * time.Minute,
 		},

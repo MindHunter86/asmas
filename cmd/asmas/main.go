@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -101,8 +102,8 @@ func main() {
 	}
 
 	// TODO sort.Sort of Flags uses too much allocs; temporary disabled
-	// sort.Sort(cli.FlagsByName(app.Flags))
-	// sort.Sort(cli.CommandsByName(app.Commands))
+	sort.Sort(cli.FlagsByName(app.Flags))
+	sort.Sort(cli.CommandsByName(app.Commands))
 
 	if e := app.Run(os.Args); e != nil {
 		log.WithLevel(zerolog.FatalLevel).Msg(e.Error())
