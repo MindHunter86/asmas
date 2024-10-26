@@ -23,7 +23,7 @@ type (
 	}
 )
 
-func (m *AuthService) unmarshalYamlConfig(payload []byte) (_ *YamlConfig, e error) {
+func (*AuthService) unmarshalYamlConfig(payload []byte) (_ *YamlConfig, e error) {
 	config := &YamlRoot{}
 
 	decoder := yaml.NewDecoder(bytes.NewBuffer(payload))
