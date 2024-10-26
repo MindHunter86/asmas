@@ -115,10 +115,7 @@ func (m *Service) Bootstrap() (e error) {
 
 	aservice := auth.NewAuthService(gCtx, gCli)
 	gCtx = context.WithValue(gCtx, utils.CKeyAuthService, aservice)
-
-	if e = aservice.Boostrap(); e != nil {
-		return
-	}
+	gofunc(&wg, aservice.Boostrap)
 
 	// fiber (http) server configuration && launch
 	// * shall be at the end of bootstrap section
@@ -171,7 +168,7 @@ LOOP:
 
 	// http destruct (wtf fiber?)
 	// ShutdownWithContext() may be called only after fiber.Listen is running (O_o)
-	if err := m.fb.ShutdownWithContext(gCtx); err != nil {
+	if err := m.fb.ShutdownWithContext(gCtx); err != nil && !errors.Is(err, context.Canceled) {
 		gLog.Error().Msgf("BUG! fiber server Shutdown() error - %s", err.Error())
 	}
 

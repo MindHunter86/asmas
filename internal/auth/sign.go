@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"errors"
 
+	"github.com/MindHunter86/asmas/internal/utils"
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/clearsign"
 	futils "github.com/gofiber/fiber/v2/utils"
 )
 
 func (*AuthService) loadConfigSigners() (openpgp.EntityList, error) {
-	return openpgp.ReadArmoredKeyRing(bytes.NewBuffer(futils.UnsafeBytes(SIGNER_PGP_PUBLIC_KEY)))
+	return openpgp.ReadArmoredKeyRing(bytes.NewBuffer(futils.UnsafeBytes(utils.SIGNER_PGP_PUBLIC_KEY)))
 }
 
 func (m *AuthService) validateConfigSign(payload []byte) (_ []byte, e error) {

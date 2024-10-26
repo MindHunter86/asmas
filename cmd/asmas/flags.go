@@ -130,6 +130,11 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			Category: "Auth service settings",
 			Value:    5 * time.Minute,
 		},
+		&cli.DurationFlag{
+			Name:     "auth-github-pull-error-delay",
+			Category: "Auth service settings",
+			Value:    1 * time.Minute,
+		},
 
 		// github http client settings
 		&cli.StringFlag{
