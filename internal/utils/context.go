@@ -7,4 +7,5 @@ const (
 	CKeyCliCtx
 	CKeyAbortFunc
 	CKeyErrorChan
+	CKeyAuthService
 )

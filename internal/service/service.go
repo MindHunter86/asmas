@@ -11,6 +11,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/MindHunter86/asmas/internal/auth"
 	"github.com/MindHunter86/asmas/internal/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -69,10 +70,14 @@ func NewService(c *cli.Context, l *zerolog.Logger, s io.Writer) *Service {
 
 		DisableDefaultContentType: true,
 
+		GETOnly: true,
 		RequestMethods: []string{
 			fiber.MethodHead,
 			fiber.MethodGet,
 		},
+
+		// JSONEncoder: easyjson.Marshal,
+		// JSONDecoder: easyjson.Unmarshal,
 
 		ErrorHandler: service.fb.ErrorHandler,
 	})
@@ -106,8 +111,14 @@ func (m *Service) Bootstrap() (e error) {
 	defer gAbort()
 
 	// BOOTSTRAP SECTION:
-
 	// ? write any subservice initialization block above the fiber server
+
+	aservice := auth.NewAuthService(gCtx, gCli)
+	gCtx = context.WithValue(gCtx, utils.CKeyAuthService, aservice)
+
+	if e = aservice.Boostrap(); e != nil {
+		return
+	}
 
 	// fiber (http) server configuration && launch
 	// * shall be at the end of bootstrap section

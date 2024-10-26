@@ -103,5 +103,94 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			EnvVars:  []string{"PPROF_SECRET"},
 			Hidden:   expertmode,
 		},
+
+		// auth service settings
+		&cli.StringFlag{
+			Name:     "auth-sign-token",
+			Category: "Auth service settings",
+			Value:    "changemeplease12345",
+		},
+		&cli.StringFlag{
+			Name:     "auth-github-repo",
+			Category: "Auth service settings",
+			Value:    "MindHunter86/asmas-test",
+		},
+		&cli.StringFlag{
+			Name:     "auth-github-path",
+			Category: "Auth service settings",
+			Value:    "config.yaml.asc",
+		},
+		&cli.StringFlag{
+			Name:     "auth-github-branch",
+			Category: "Auth service settings",
+			Value:    "master",
+		},
+		&cli.DurationFlag{
+			Name:     "auth-github-pull-interval",
+			Category: "Auth service settings",
+			Value:    5 * time.Minute,
+		},
+
+		// github http client settings
+		&cli.StringFlag{
+			Name:     "github-api-addr",
+			Category: "Github client settings",
+			Value:    "api.github.com:443",
+			Hidden:   expertmode,
+		},
+		&cli.StringFlag{
+			Name:     "github-api-version",
+			Category: "Github client settings",
+			Usage:    "https://docs.github.com/en/rest/about-the-rest-api/api-versions?apiVersion=2022-11-28#about-api-versioning",
+			Value:    "2022-11-28",
+			Hidden:   expertmode,
+		},
+		&cli.BoolFlag{
+			Name:     "github-ssl-insecure",
+			Category: "Github client settings",
+			Hidden:   expertmode,
+		},
+		&cli.IntFlag{
+			Name:     "github-max-conns",
+			Category: "Github client settings",
+			Value:    32,
+			Hidden:   expertmode,
+		},
+		&cli.DurationFlag{
+			Name:     "github-timeout-read",
+			Category: "Github client settings",
+			Value:    3 * time.Second,
+		},
+		&cli.DurationFlag{
+			Name:     "github-timeout-write",
+			Category: "Github client settings",
+			Value:    3 * time.Second,
+		},
+		&cli.DurationFlag{
+			Name:     "github-timeout-idle",
+			Category: "Github client settings",
+			Usage:    "idle keep-alive connections are closed after this duration",
+			Value:    5 * time.Minute,
+		},
+		&cli.DurationFlag{
+			Name:     "github-timeout-conn",
+			Category: "Github client settings",
+			Usage:    "keep-alive connections are closed after this duration",
+			Value:    1 * time.Second,
+		},
+		&cli.IntFlag{
+			Name:     "github-tcpdial-concurr",
+			Category: "Github client settings",
+			Usage:    "concurrency controls the maximum number of concurrent Dials that can be performed using this object. Setting this to 0 means unlimited",
+			Value:    0,
+			Hidden:   expertmode,
+		},
+		&cli.DurationFlag{
+			Name:     "github-dnscache-dur",
+			Category: "Github client settings",
+			Usage:    "this may be used to override the default DNS cache duration",
+			Value:    1 * time.Minute,
+			Hidden:   expertmode,
+		},
 	}
 }

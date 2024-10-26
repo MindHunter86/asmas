@@ -35,7 +35,11 @@ pkg/.vscode/launch.json
 # BFG reports
 ..bfg-report/
 
-# Dynamic trash content
+# Application configs
+config/
+export/
+
+# Dynamic trash contenуездаt
 .bash_history
 data/
 test/
