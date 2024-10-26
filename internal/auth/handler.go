@@ -17,7 +17,7 @@ const (
 func MiddlewareAuthorization(c *fiber.Ctx) error {
 	var sign []byte
 	if sign = c.Request().PostArgs().Peek(RegistrationArgSign); IsEmpty(sign) {
-		rdebug(c, "sign : %s", futils.UnsafeString(sign))
+		rdebugf(c, "sign : %s", futils.UnsafeString(sign))
 
 		rlog(c).Error().Msg("decline request wo sign argument")
 		return fiber.NewError(fiber.StatusBadRequest)
@@ -25,7 +25,7 @@ func MiddlewareAuthorization(c *fiber.Ctx) error {
 
 	var hostname []byte
 	if hostname = c.Request().PostArgs().Peek(RegistrationArgHostname); IsEmpty(hostname) {
-		rdebug(c, "hostname : %s", futils.UnsafeString(hostname))
+		rdebugf(c, "hostname : %s", futils.UnsafeString(hostname))
 
 		rlog(c).Error().Msg("decline request wo hostname argument")
 		return fiber.NewError(fiber.StatusBadRequest)
@@ -33,7 +33,7 @@ func MiddlewareAuthorization(c *fiber.Ctx) error {
 
 	aservice := c.UserContext().Value(utils.CKeyAuthService).(*AuthService)
 	if !aservice.AuthorizeHostname(hostname) {
-		rdebug(c, "hostname : %s", futils.UnsafeString(hostname))
+		rdebugf(c, "hostname : %s", futils.UnsafeString(hostname))
 
 		rlog(c).Error().Msg("decline request from unauthorized hostname")
 		return fiber.NewError(fiber.StatusForbidden)
@@ -45,7 +45,7 @@ func MiddlewareAuthorization(c *fiber.Ctx) error {
 func HandleGetCertificate(c *fiber.Ctx) error {
 	var domain string
 	if domain = c.Params("domain"); domain == "" {
-		rdebug(c, "hostname : %s", domain)
+		rdebugf(c, "hostname : %s", domain)
 
 		rlog(c).Error().Msg("decline request with invalid domain param")
 		return fiber.NewError(fiber.StatusBadRequest)
@@ -94,7 +94,7 @@ func HandlerRegistration(c *fiber.Ctx) error {
 		c.Request().PostArgs().Peek(RegistrationArgSign)
 
 	if len(hostname) == 0 || len(invitation) == 0 || len(sign) == 0 {
-		rdebug(c, "hostname:invite:sign %s:%s:%s",
+		rdebugf(c, "hostname:invite:sign %s:%s:%s",
 			futils.UnsafeString(hostname), futils.UnsafeString(sign), futils.UnsafeString(invitation))
 
 		rlog(c).Error().Msg("decline request with invalid args in body")
@@ -108,7 +108,7 @@ func rlog(c *fiber.Ctx) *zerolog.Logger {
 	return nil
 }
 
-func rdebug(c *fiber.Ctx, format string, opts ...interface{}) {
+func rdebugf(c *fiber.Ctx, format string, opts ...interface{}) {
 	if zerolog.GlobalLevel() > zerolog.DebugLevel {
 		return
 	}
