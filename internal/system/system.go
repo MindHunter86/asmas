@@ -147,7 +147,7 @@ func (m *System) getFilesFromDirectory(path string) (_ []*os.File, e error) {
 		fds = append(fds, filefd)
 	}
 
-	return
+	return fds, e
 }
 
 func (*System) resolveSymlink(path string) (_ *os.File, e error) {
