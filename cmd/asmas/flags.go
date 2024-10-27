@@ -197,5 +197,39 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			Value:    1 * time.Minute,
 			Hidden:   expertmode,
 		},
+
+		// Certbot settings
+		&cli.BoolFlag{
+			Name:     "certbot-args-reuse-key",
+			Category: "Certbot settings",
+			Hidden:   expertmode,
+		},
+		&cli.StringFlag{
+			Name:     "certbot-args-key-type",
+			Category: "Certbot settings",
+			Value:    "ecdsa",
+			Hidden:   expertmode,
+		},
+		&cli.StringFlag{
+			Name:     "certbot-args-elliptic-curve",
+			Category: "Certbot settings",
+			Value:    "secp256r1",
+			Hidden:   expertmode,
+		},
+		&cli.IntFlag{
+			Name:     "certbot-args-http-01-port",
+			Category: "Certbot settings",
+			Value:    8079,
+		},
+		&cli.StringFlag{
+			Name:     "certbot-args-certs-path",
+			Category: "Certbot settings",
+			Value:    "/etc/letsencrypt/live/",
+		},
+		&cli.StringFlag{
+			Name:     "certbot-args-account-email",
+			Category: "Certbot settings",
+			Value:    "root@example.com",
+		},
 	}
 }

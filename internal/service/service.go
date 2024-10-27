@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/MindHunter86/asmas/internal/auth"
+	"github.com/MindHunter86/asmas/internal/system"
 	"github.com/MindHunter86/asmas/internal/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -113,6 +114,11 @@ func (m *Service) Bootstrap() (e error) {
 	// BOOTSTRAP SECTION:
 	// ? write any subservice initialization block above the fiber server
 
+	// System Maintain Service
+	sysservice := system.NewSystem(gCtx, gCli)
+	gofunc(&wg, sysservice.Bootstrap)
+
+	// Authentification Authorization Service
 	aservice := auth.NewAuthService(gCtx, gCli)
 	gCtx = context.WithValue(gCtx, utils.CKeyAuthService, aservice)
 	gofunc(&wg, aservice.Boostrap)
