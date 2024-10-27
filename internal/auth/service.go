@@ -3,6 +3,8 @@ package auth
 import (
 	"context"
 	"crypto"
+	"errors"
+	"regexp"
 	"sync"
 	"time"
 
@@ -57,6 +59,12 @@ func (m *AuthService) Boostrap() {
 		return
 	}
 
+	for _, entity := range m.signers {
+		for _, identity := range entity.Identities {
+			m.log.Info().Msgf("loaded trusted signer named as %s", identity.Name)
+		}
+	}
+
 	if m.authlist, e = m.loadAuthorizationList(); e != nil {
 		m.log.Error().Msg("an error occurred while loading authlist - " + e.Error())
 		m.abort()
@@ -64,16 +72,28 @@ func (m *AuthService) Boostrap() {
 	}
 
 	// !! LOAD DOMAINS
-	// for _, authorization := range m.authlist.AuthorizationList {
-	// 	fmt.Println(string(authorization.Domains))
-	// }
 
 	m.loop()
 }
 
-func (*AuthService) AuthorizeHostname(hostname []byte) bool { return false }
+func (m *AuthService) AuthorizeHostname(name, hostname string) (ok bool, _ error) {
+	if !m.isApiReady() {
+		return false, errors.New("auth service api is not ready yet")
+	}
 
-func (*AuthService) CertificateByDomain(domain string) ([]byte, error) {
+	ok = actionReturbableWithRLock[bool](&m.mu, func() bool {
+		var auth *YamlAuthorization
+		if auth = m.authlist.authorizationByFqdn(name); auth == nil {
+			return false
+		}
+
+		return auth.isAuthorizedFqdn(hostname)
+	})
+
+	return
+}
+
+func (*AuthService) CertificateByName(name string) ([]byte, error) {
 	return nil, nil
 }
 
@@ -100,15 +120,23 @@ LOOP:
 			started := time.Now()
 
 			if e = m.updateAuthorizationList(); e != nil {
-				m.log.Error().Msg("an error occurred in auth update loop, %s" + e.Error())
+				m.log.Error().Msg("an error occurred in auth update loop, " + e.Error())
 				update.Reset(m.pullerrdelay)
 				continue
 			}
 
-			m.log.Info().Msgf("authorization list has been updated for %s", time.Since(started).String())
+			m.log.Info().Msg("authorization list has been updated for " + time.Since(started).String())
 			update.Reset(m.pullinterval)
 		}
 	}
+}
+
+func (m *AuthService) isApiReady() (ok bool) {
+	ok = actionReturbableWithRLock[bool](&m.mu, func() bool {
+		return m.authlist != nil
+	})
+
+	return
 }
 
 func (m *AuthService) updateAuthorizationList() (e error) {
@@ -138,5 +166,49 @@ func (m *AuthService) loadAuthorizationList() (_ *YamlConfig, e error) {
 		return
 	}
 
-	return m.unmarshalYamlConfig(validated)
+	var authlist *YamlConfig
+	if authlist, e = m.unmarshalYamlConfig(validated); e != nil {
+		return
+	}
+
+	if ok := actionReturbableWithRLock[bool](&m.mu, func() bool {
+		return m.validateAuthorizationList(authlist)
+	}); !ok {
+		return nil, errors.New("could not validate received config with authorized domains, check logs")
+	}
+
+	return authlist, e
+}
+
+func (m *AuthService) validateAuthorizationList(authlist *YamlConfig) (ok bool) {
+	var entityname string
+
+	defer func() {
+		if r := recover(); r != nil {
+			m.log.Error().Msgf("panic has been cauth on processing %s regexp, regexp is invalid", entityname)
+			m.log.Debug().Msg("panic has been caught, seems regexp compilation was failed")
+			m.log.Trace().Msgf("%+v", r)
+		}
+	}()
+
+	for _, entity := range authlist.AuthorizationList {
+		// save entityname for panic errors
+		entityname = entity.Name
+
+		if entity.Domains == "" {
+			entity.Domains = entity.Name
+			continue
+		}
+
+		// check for regexp template
+		domlen := len(entity.Domains)
+		if entity.Domains[:1] == "/" && entity.Domains[domlen-1:domlen] == "/" {
+			entity.domregexp = regexp.MustCompile(entity.Domains[1 : domlen-1])
+		}
+
+		m.log.Info().Msgf("loaded authorized domain with id %s", entity.Name)
+	}
+
+	ok = true
+	return
 }

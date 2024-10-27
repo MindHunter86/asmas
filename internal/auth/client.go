@@ -132,7 +132,7 @@ func (m *HttpClient) fetchConfigFromGithub() (_ *GithubResponse, e error) {
 	defer m.releaseRequestResponse(req, rsp)
 
 	if !m.ratereset.IsZero() && !m.hasRequestsInLimitWindow() {
-		return nil, errors.New("could not call github request because of limits, retry after %s" + m.ratereset.String())
+		return nil, errors.New("could not call github request because of limits, retry after " + m.ratereset.String())
 	}
 	defer m.updateGithubRateLimits(&rsp.Header)
 

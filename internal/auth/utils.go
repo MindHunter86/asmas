@@ -2,6 +2,13 @@ package auth
 
 import "sync"
 
+type LocalKey uint8
+
+const (
+	LKeyName LocalKey = iota
+	LKeyHostname
+)
+
 func IsEmpty(b []byte) bool {
 	return len(b) == 0
 }
@@ -13,9 +20,9 @@ func actionWithLock(mu *sync.RWMutex, action func()) {
 	action()
 }
 
-// func actionPayloadedWithRLock[V *YamlConfig](mu *sync.RWMutex, action func() V) V {
-// 	mu.RLock()
-// 	defer mu.RUnlock()
+func actionReturbableWithRLock[V bool](mu *sync.RWMutex, action func() V) V {
+	mu.RLock()
+	defer mu.RUnlock()
 
-// 	return action()
-// }
+	return action()
+}

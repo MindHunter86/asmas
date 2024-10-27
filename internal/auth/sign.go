@@ -26,7 +26,7 @@ func (m *AuthService) validateConfigSign(payload []byte) (_ []byte, e error) {
 	}
 
 	for _, identity := range signer.Identities {
-		m.log.Info().Msgf("found trusted identity %s", identity.Name)
+		m.log.Info().Msgf("found trusted identity %s in received payload", identity.Name)
 	}
 
 	m.log.Info().Msg("received payload has been verified and approved")

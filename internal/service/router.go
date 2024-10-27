@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/MindHunter86/asmas/internal/auth"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -57,6 +58,12 @@ func (m *Service) fiberMiddlewareInitialization() {
 	// request id 3.0
 	m.fb.Use(func(c *fiber.Ctx) error {
 		c.Set("X-Request-Id", strconv.FormatUint(c.Context().ID(), 10))
+		return c.Next()
+	})
+
+	// application context injection
+	m.fb.Use(func(c *fiber.Ctx) error {
+		c.SetUserContext(gCtx)
 		return c.Next()
 	})
 
@@ -132,8 +139,11 @@ func (m *Service) fiberRouterInitialization() {
 
 	//
 	// ASMAS public v1 api
-	v1 := m.fb.Group("/v1", nil)
+	v1 := m.fb.Group("/v1", auth.MiddlewareAuthentification)
 
-	v1.Get("/certificates/public/:name", nil)
-	v1.Get("/certificates/private/:name", nil)
+	certs := v1.Group("/certificates/:name", auth.MiddlewareAuthorization)
+	certs.Get("/public", auth.HandleGetCertificate)
+
+	// v1.Get("/certificates/public/:name", auth.HandleGetCertificate)
+	// v1.Get("/certificates/private/:name", )
 }
