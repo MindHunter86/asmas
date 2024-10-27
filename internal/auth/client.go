@@ -131,7 +131,7 @@ func (m *HttpClient) fetchConfigFromGithub() (_ *GithubResponse, e error) {
 	req, rsp := m.acquireRequestResponse()
 	defer m.releaseRequestResponse(req, rsp)
 
-	if !m.ratereset.IsZero() && !m.hasRequestsInLimitWindow() {
+	if !m.ratereset.IsZero() && m.noRequestsInLimitWindow() {
 		return nil, errors.New("could not call github request because of limits, retry after " + m.ratereset.String())
 	}
 	defer m.updateGithubRateLimits(&rsp.Header)
@@ -160,8 +160,8 @@ func (m *HttpClient) fetchConfigFromGithub() (_ *GithubResponse, e error) {
 	return response, easyjson.Unmarshal(rsp.Body(), response)
 }
 
-func (m *HttpClient) hasRequestsInLimitWindow() bool {
-	return m.rateremain > 0 && !time.Now().Before(m.ratereset)
+func (m *HttpClient) noRequestsInLimitWindow() bool {
+	return m.rateremain <= 0 && time.Now().Before(m.ratereset)
 }
 
 func (m *HttpClient) updateGithubRateLimits(headers *fasthttp.ResponseHeader) (e error) {

@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/MindHunter86/asmas/internal/utils"
 	"github.com/gofiber/fiber/v2"
+	futils "github.com/gofiber/fiber/v2/utils"
 	"github.com/rs/zerolog"
 )
 
@@ -16,14 +17,6 @@ const (
 
 // Base request validation
 func MiddlewareAuthentification(c *fiber.Ctx) error {
-	// var sign []byte
-	// if sign = c.Request().PostArgs().Peek(RegistrationArgSign); IsEmpty(sign) {
-	// 	rdebugf(c, "sign : %s", futils.UnsafeString(sign))
-
-	// 	rlog(c).Error().Msg("decline request wo sign argument")
-	// 	return fiber.NewError(fiber.StatusBadRequest)
-	// }
-
 	var hostname string
 	if hostname = c.Query(RegistrationArgHostname); hostname == "" {
 		rdebugf(c, "hostname : %s", hostname)
@@ -33,9 +26,32 @@ func MiddlewareAuthentification(c *fiber.Ctx) error {
 	}
 	c.Locals(LKeyHostname, hostname)
 
-	// !!!
-	//! Check SIGN!!!
-	// !!!
+	var sign string
+	if sign = c.Query(RegistrationArgSign); sign == "" {
+		rdebugf(c, "sign : %s", sign)
+
+		rlog(c).Error().Msg("decline request wo sign argument")
+		return fiber.NewError(fiber.StatusBadRequest)
+	}
+
+	aservice := c.UserContext().Value(utils.CKeyAuthService).(*AuthService)
+
+	var payload []byte
+	payloadlen := len(c.IP()) + len(c.Request().String()) + len(hostname)
+	if payload = aservice.prepareHMACMessage(payloadlen, c.IP(), c.Path(), hostname); payload == nil {
+		rdebugf(c, "chunks: %s | %s | %s", c.IP(), c.Path(), hostname)
+
+		rlog(c).Error().Msg("unexpected result while preparing message for sign verification")
+		return fiber.NewError(fiber.StatusInternalServerError)
+	}
+
+	if expect, ok := aservice.verifyHMACSign(payload, futils.UnsafeBytes(sign)); !ok {
+		rdebugf(c, "chunks : %s | %s | %s", c.IP(), c.Path(), hostname)
+		rdebugf(c, "recevied sign %s, expect %s", sign, expect)
+
+		rlog(c).Error().Msg("decline request with unverified hmac sign")
+		return fiber.NewError(fiber.StatusInternalServerError)
+	}
 
 	return c.Next()
 }
