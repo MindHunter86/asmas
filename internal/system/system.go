@@ -71,6 +71,7 @@ func (m *System) prepareCertificatePath(path string) (e error) {
 		// check file naming
 		if !strings.HasSuffix(file.Name(), ".pem") {
 			// log
+			continue
 		}
 
 		m.mntdomains[filepath.Join(path, file.Name())] = file
