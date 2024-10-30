@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"github.com/MindHunter86/asmas/internal/system"
 	"github.com/MindHunter86/asmas/internal/utils"
 	"github.com/gofiber/fiber/v2"
 	futils "github.com/gofiber/fiber/v2/utils"
@@ -99,6 +100,15 @@ func HandleGetCertificate(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError)
 	} else if IsEmpty(cert) {
 		rlog(c).Error().Msg("an empty result received from auth service")
+		return fiber.NewError(fiber.StatusInternalServerError)
+	}
+
+	sservice := c.UserContext().Value(utils.CKeySystem).(*system.System)
+	buf := sservice.AcquireBuffer()
+	defer sservice.ReleaseBuffer(buf)
+
+	if e = sservice.PeekFile(system.PEM_CERTIFICATE, futils.UnsafeString(cert), buf); e != nil {
+		rlog(c).Error().Msg("an error occurred while peeking certificate from system")
 		return fiber.NewError(fiber.StatusInternalServerError)
 	}
 

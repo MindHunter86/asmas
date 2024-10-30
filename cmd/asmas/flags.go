@@ -24,6 +24,13 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			DisableDefaultText: true,
 		},
 
+		// debug feature-flags
+		&cli.BoolFlag{
+			Name:     "debug-skip-github-connect",
+			Category: "Debug options",
+			Hidden:   expertmode,
+		},
+
 		// common settings : syslog
 		&cli.StringFlag{
 			Name:     "syslog-server",
@@ -230,6 +237,35 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			Name:     "certbot-args-account-email",
 			Category: "Certbot settings",
 			Value:    "root@example.com",
+		},
+
+		// system settings
+		&cli.StringFlag{
+			Name:     "system-cert-path",
+			Category: "System settings",
+			Usage:    "should be like certbot-args-certs-path",
+			Value:    "/etc/letsencrypt/live/",
+		},
+		&cli.Int64Flag{
+			Name:     "system-pem-size-limit",
+			Category: "System settings",
+			Usage:    "certificate in pem format file size limit in kilobytes",
+			Value:    10,
+			Hidden:   expertmode,
+		},
+		&cli.StringFlag{
+			Name:     "system-pem-pubname",
+			Category: "System settings",
+			Usage:    "",
+			Value:    "fullchain.pem",
+			Hidden:   expertmode,
+		},
+		&cli.StringFlag{
+			Name:     "system-pem-keyname",
+			Category: "System settings",
+			Usage:    "",
+			Value:    "privkey.pem",
+			Hidden:   expertmode,
 		},
 	}
 }

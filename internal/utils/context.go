@@ -8,4 +8,5 @@ const (
 	CKeyAbortFunc
 	CKeyErrorChan
 	CKeyAuthService
+	CKeySystem
 )

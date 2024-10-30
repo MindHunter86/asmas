@@ -22,6 +22,8 @@ type AuthService struct {
 	pullinterval time.Duration
 	pullerrdelay time.Duration
 
+	debugskipgithub bool
+
 	signers   openpgp.EntityList
 	pgpconfig *packet.Config
 
@@ -44,6 +46,8 @@ func NewAuthService(c context.Context, cc *cli.Context) *AuthService {
 		pgpconfig: &packet.Config{
 			DefaultHash: crypto.SHA512,
 		},
+
+		debugskipgithub: cc.Bool("debug-skip-github-connect"),
 
 		log:   c.Value(utils.CKeyLogger).(*zerolog.Logger),
 		done:  c.Done,
@@ -152,6 +156,10 @@ func (m *AuthService) updateAuthorizationList() (e error) {
 }
 
 func (m *AuthService) loadAuthorizationList() (_ *YamlConfig, e error) {
+	if m.debugskipgithub {
+		return
+	}
+
 	var response *GithubResponse
 	if response, e = m.client.fetchConfigFromGithub(); e != nil {
 		return

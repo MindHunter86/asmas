@@ -116,6 +116,7 @@ func (m *Service) Bootstrap() (e error) {
 
 	// System Maintain Service
 	sysservice := system.NewSystem(gCtx, gCli)
+	gCtx = context.WithValue(gCtx, utils.CKeySystem, sysservice)
 	gofunc(&wg, sysservice.Bootstrap)
 
 	// Authentification Authorization Service

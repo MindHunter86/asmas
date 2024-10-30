@@ -39,6 +39,9 @@ pkg/.vscode/launch.json
 config/
 export/
 
+# Test data
+testdata/
+
 # Dynamic trash contenуездаt
 .bash_history
 data/
