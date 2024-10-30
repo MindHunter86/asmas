@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/MindHunter86/asmas/internal/auth"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -139,10 +138,10 @@ func (m *Service) fiberRouterInitialization() {
 
 	//
 	// ASMAS public v1 api
-	v1 := m.fb.Group("/v1", auth.MiddlewareAuthentification)
+	v1 := m.fb.Group("/v1", middlewareAuthentification)
 
-	certs := v1.Group("/certificates/:name", auth.MiddlewareAuthorization)
-	certs.Get("/public", auth.HandleGetCertificate)
+	certs := v1.Group("/certificates/:name", middlewareAuthorization)
+	certs.Get("/public", handleGetCertificate)
 
 	// v1.Get("/certificates/public/:name", auth.HandleGetCertificate)
 	// v1.Get("/certificates/private/:name", )

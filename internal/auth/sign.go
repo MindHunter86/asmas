@@ -36,7 +36,7 @@ func (m *AuthService) validateConfigSign(payload []byte) (_ []byte, e error) {
 	return signblock.Bytes, e
 }
 
-func (*AuthService) prepareHMACMessage(size int, payload ...string) []byte {
+func (*AuthService) PrepareHMACMessage(size int, payload ...string) []byte {
 	payloadlen := len(payload)
 	if size == 0 || payloadlen == 0 {
 		return nil
@@ -54,7 +54,7 @@ func (*AuthService) prepareHMACMessage(size int, payload ...string) []byte {
 	return message
 }
 
-func (m *AuthService) verifyHMACSign(message, signed []byte) (string, bool) {
+func (m *AuthService) VerifyHMACSign(message, signed []byte) (string, bool) {
 	var buf256 [sha256.Size]byte
 
 	buf, elen :=

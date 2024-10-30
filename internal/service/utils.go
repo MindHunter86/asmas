@@ -9,6 +9,14 @@ func rlog(c *fiber.Ctx) *zerolog.Logger {
 	return c.Locals("logger").(*zerolog.Logger)
 }
 
+func rdebugf(c *fiber.Ctx, format string, opts ...interface{}) {
+	if zerolog.GlobalLevel() > zerolog.DebugLevel {
+		return
+	}
+
+	rlog(c).Debug().Msgf(format, opts...)
+}
+
 func respond(status int, msg, desc string) {
 	// !!!
 	// !!!

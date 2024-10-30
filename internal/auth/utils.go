@@ -9,10 +9,6 @@ const (
 	LKeyHostname
 )
 
-func IsEmpty(b []byte) bool {
-	return len(b) == 0
-}
-
 func actionWithLock(mu *sync.RWMutex, action func()) {
 	mu.Lock()
 	defer mu.Unlock()

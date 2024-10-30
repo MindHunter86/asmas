@@ -1,4 +1,4 @@
-package auth
+package gclient
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/MindHunter86/asmas/internal/utils"
 	futils "github.com/gofiber/fiber/v2/utils"
 	"github.com/mailru/easyjson"
 	"github.com/rs/zerolog"
@@ -98,6 +99,64 @@ func NewHttpClient(cc *cli.Context, log *zerolog.Logger) *HttpClient {
 	}
 }
 
+func (m *HttpClient) FetchConfigFromGithub() (_ *GithubResponse, e error) {
+	req, rsp := m.acquireRequestResponse()
+	defer m.releaseRequestResponse(req, rsp)
+
+	if !m.ratereset.IsZero() && m.noRequestsInLimitWindow() {
+		return nil, errors.New("could not call github request because of limits, retry after " + m.ratereset.String())
+	}
+	defer m.updateGithubRateLimits(&rsp.Header)
+
+	if e = m.Do(req, rsp); e != nil {
+		return
+	}
+
+	if zerolog.GlobalLevel() <= zerolog.DebugLevel {
+		m.log.Trace().Msg(req.String())
+		m.log.Trace().Msg(rsp.String())
+	}
+
+	status, body := rsp.StatusCode(), rsp.Body()
+	if status < fasthttp.StatusOK || status >= fasthttp.StatusInternalServerError {
+		return nil, errors.New("github api respond with an unexpected status, is github down?")
+	} else if status >= fasthttp.StatusBadRequest && status < fasthttp.StatusInternalServerError {
+		return nil, errors.New("github api respond with a 4XX error, seems request builder had been failed")
+	}
+
+	if utils.IsEmpty(body) {
+		return nil, errors.New("github api respond with an empty body, unexpected result")
+	}
+
+	response := &GithubResponse{}
+	return response, easyjson.Unmarshal(rsp.Body(), response)
+}
+
+func (m *HttpClient) ValidateGithubResponse(response *GithubResponse) error {
+	if response == nil {
+		return errors.New("BUG! given gihub response is nil")
+	}
+
+	if response.Message != "" || response.Status != 0 {
+		m.log.Trace().Msgf("status: %d; message: %s", response.Status, response.Message)
+		return errors.New("response has message/status field, seems github respond with an error")
+	}
+
+	if clen := len(response.Content); clen != response.Size {
+		m.log.Trace().Msgf("content len(): %d; reponse.size: %d", clen, response.Size)
+		return errors.New("response content length is not matches with responded size")
+	}
+
+	if response.Type != "file" {
+		m.log.Trace().Msgf("response type: %s; expecting 'file'", response.Type)
+		return errors.New("unexpected response object type received")
+	}
+
+	m.log.Info().Msgf("downloaded and validated file %s with hash %s and length %d",
+		response.Name, response.Sha, response.Size)
+	return nil
+}
+
 //
 //
 //
@@ -127,50 +186,17 @@ func (*HttpClient) releaseRequestResponse(req *fasthttp.Request, rsp *fasthttp.R
 	fasthttp.ReleaseResponse(rsp)
 }
 
-func (m *HttpClient) fetchConfigFromGithub() (_ *GithubResponse, e error) {
-	req, rsp := m.acquireRequestResponse()
-	defer m.releaseRequestResponse(req, rsp)
-
-	if !m.ratereset.IsZero() && m.noRequestsInLimitWindow() {
-		return nil, errors.New("could not call github request because of limits, retry after " + m.ratereset.String())
-	}
-	defer m.updateGithubRateLimits(&rsp.Header)
-
-	if e = m.Do(req, rsp); e != nil {
-		return
-	}
-
-	if zerolog.GlobalLevel() <= zerolog.DebugLevel {
-		m.log.Trace().Msg(req.String())
-		m.log.Trace().Msg(rsp.String())
-	}
-
-	status, body := rsp.StatusCode(), rsp.Body()
-	if status < fasthttp.StatusOK || status >= fasthttp.StatusInternalServerError {
-		return nil, errors.New("github api respond with an unexpected status, is github down?")
-	} else if status >= fasthttp.StatusBadRequest && status < fasthttp.StatusInternalServerError {
-		return nil, errors.New("github api respond with a 4XX error, seems request builder had been failed")
-	}
-
-	if IsEmpty(body) {
-		return nil, errors.New("github api respond with an empty body, unexpected result")
-	}
-
-	response := &GithubResponse{}
-	return response, easyjson.Unmarshal(rsp.Body(), response)
-}
-
 func (m *HttpClient) noRequestsInLimitWindow() bool {
 	return m.rateremain <= 0 && time.Now().Before(m.ratereset)
 }
 
 func (m *HttpClient) updateGithubRateLimits(headers *fasthttp.ResponseHeader) (e error) {
 	var remaining, reset []byte
-	if remaining = headers.Peek("X-RateLimit-Remaining"); IsEmpty(remaining) {
+	if remaining = headers.Peek("X-RateLimit-Remaining"); utils.IsEmpty(remaining) {
 		return errors.New("ratelimit headers (remaining) are empty")
 	}
 
-	if reset = headers.Peek("X-RateLimit-Reset"); IsEmpty(reset) {
+	if reset = headers.Peek("X-RateLimit-Reset"); utils.IsEmpty(reset) {
 		return errors.New("ratelimit headers (reset) are empty")
 	}
 
@@ -187,29 +213,4 @@ func (m *HttpClient) updateGithubRateLimits(headers *fasthttp.ResponseHeader) (e
 	m.rateremain = remainingbuf
 	m.ratereset = time.Unix(resetbuf, 0)
 	return
-}
-
-func (m *HttpClient) validateGithubResponse(response *GithubResponse) error {
-	if response == nil {
-		return errors.New("BUG! given gihub response is nil")
-	}
-
-	if response.Message != "" || response.Status != 0 {
-		m.log.Trace().Msgf("status: %d; message: %s", response.Status, response.Message)
-		return errors.New("response has message/status field, seems github respond with an error")
-	}
-
-	if clen := len(response.Content); clen != response.Size {
-		m.log.Trace().Msgf("content len(): %d; reponse.size: %d", clen, response.Size)
-		return errors.New("response content length is not matches with responded size")
-	}
-
-	if response.Type != "file" {
-		m.log.Trace().Msgf("response type: %s; expecting 'file'", response.Type)
-		return errors.New("unexpected response object type received")
-	}
-
-	m.log.Info().Msgf("downloaded and validated file %s with hash %s and length %d",
-		response.Name, response.Sha, response.Size)
-	return nil
 }

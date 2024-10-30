@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/MindHunter86/asmas/internal/gclient"
 	"github.com/MindHunter86/asmas/internal/utils"
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
@@ -18,7 +19,7 @@ import (
 type AuthService struct {
 	token string
 
-	client       *HttpClient
+	client       *gclient.HttpClient
 	pullinterval time.Duration
 	pullerrdelay time.Duration
 
@@ -39,7 +40,7 @@ func NewAuthService(c context.Context, cc *cli.Context) *AuthService {
 	return &AuthService{
 		token: cc.String("auth-sign-token"),
 
-		client:       NewHttpClient(cc, c.Value(utils.CKeyLogger).(*zerolog.Logger)),
+		client:       gclient.NewHttpClient(cc, c.Value(utils.CKeyLogger).(*zerolog.Logger)),
 		pullinterval: cc.Duration("auth-github-pull-interval"),
 		pullerrdelay: cc.Duration("auth-github-pull-error-delay"),
 
@@ -160,12 +161,12 @@ func (m *AuthService) loadAuthorizationList() (_ *YamlConfig, e error) {
 		return
 	}
 
-	var response *GithubResponse
-	if response, e = m.client.fetchConfigFromGithub(); e != nil {
+	var response *gclient.GithubResponse
+	if response, e = m.client.FetchConfigFromGithub(); e != nil {
 		return
 	}
 
-	if e = m.client.validateGithubResponse(response); e != nil {
+	if e = m.client.ValidateGithubResponse(response); e != nil {
 		return
 	}
 

@@ -158,7 +158,7 @@ func (m *System) prepareCertificatePath(path string) (e error) {
 	}
 
 	// !!!
-	panic(1)
+	// panic(1)
 
 	for _, file := range files {
 		filename := filepath.Base(file.Name())
