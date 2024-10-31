@@ -9,6 +9,13 @@ func actionWithLock(mu *sync.RWMutex, action func()) {
 	action()
 }
 
+func actionWithRLock(mu *sync.RWMutex, action func()) {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	action()
+}
+
 func actionReturbableWithRLock[V *PemFile](mu *sync.RWMutex, action func() (V, bool)) (V, bool) {
 	mu.RLock()
 	defer mu.RUnlock()

@@ -39,8 +39,6 @@ type System struct {
 var ErrCertNotFound = errors.New("")
 var ErrBufIsUndefined = errors.New("")
 
-const kbyteSize int64 = 1024
-
 func NewSystem(c context.Context, cc *cli.Context) *System {
 	return &System{
 		certpath:   cc.String("system-cert-path"),
@@ -147,10 +145,14 @@ func (m *System) prepareCertificatePath(path string) (e error) {
 	}
 
 	if zerolog.GlobalLevel() <= zerolog.DebugLevel {
-		for name, file := range m.pemstorage.st {
-			m.log.Trace().Msgf("found file - %s (%s)", name, file.fd.Name())
-		}
+		m.pemstorage.VisitAll(func(path string, pfile *PemFile) {
+			m.log.Trace().Msgf("found file - %s (%s)", path, pfile.fd.Name())
+		})
 	}
+
+	// m.pemstorage.VisitAll(func(path string, pfile *PemFile) {
+
+	// })
 
 	// for _, file := range m.mntdomains {
 	// 	filepaths := strings.Split(filepath.Clean(file.Name()), "/")
@@ -210,7 +212,10 @@ func (m *System) peekPemsFromCertPath(certpath string) (e error) {
 		}
 
 		var pfile *PemFile
-		if pfile, e = NewPemFile(filepath.Join(certpath, entry.Name())); e != nil {
+		if pfile, e = NewPemFile(filepath.Join(certpath, entry.Name()),
+			WithPemSizeLimit(m.pemsizelimit),
+			WithPemFileNamings(m.pempubname, m.pemkeyname)); e != nil {
+
 			m.log.Debug().Msgf("an error occurred while preparing pem file %s, %s ", entry.Name(), e.Error())
 			continue
 		}

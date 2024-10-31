@@ -253,19 +253,19 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			Value:    10,
 			Hidden:   expertmode,
 		},
-		// &cli.StringFlag{
-		// 	Name:     "system-pem-pubname",
-		// 	Category: "System settings",
-		// 	Usage:    "",
-		// 	Value:    "",
-		// 	Hidden:   expertmode,
-		// },
-		// &cli.StringFlag{
-		// 	Name:     "system-pem-keyname",
-		// 	Category: "System settings",
-		// 	Usage:    "",
-		// 	Value:    "",
-		// 	Hidden:   expertmode,
-		// },
+		&cli.StringFlag{
+			Name:     "system-pem-pubname",
+			Category: "System settings",
+			Usage:    "",
+			Value:    "fullchain.pem",
+			Hidden:   expertmode,
+		},
+		&cli.StringFlag{
+			Name:     "system-pem-keyname",
+			Category: "System settings",
+			Usage:    "",
+			Value:    "privkey.pem",
+			Hidden:   expertmode,
+		},
 	}
 }

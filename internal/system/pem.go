@@ -17,29 +17,65 @@ const (
 	PEM_CHAIN
 )
 
-type PemFile struct {
-	Type FileType
+const kbyteSize int64 = 1024
 
-	Name   string
-	Domain string
+type (
+	PemFile struct {
+		Type FileType
 
-	mu sync.RWMutex
-	fd *os.File
-}
+		Name   string
+		Domain string
 
-type PemStorage struct {
-	mu sync.RWMutex
-	st map[string]*PemFile
-}
+		options *pemFileOptions
 
-func NewPemFile(path string) (pfile *PemFile, e error) {
+		mu sync.RWMutex
+		fd *os.File
+	}
+	pemFileOptions struct {
+		certname      string
+		privatename   string
+		filesizelimit int64
+	}
+	PFOption func(*pemFileOptions)
+)
+
+func NewPemFile(path string, options ...PFOption) (pfile *PemFile, e error) {
 	pfile = &PemFile{}
 
 	if pfile.fd, e = openPemLink(path); e != nil {
 		return
 	}
 
+	pfile.options = withDefaultPemOptions()
+	for _, option := range options {
+		option(pfile.options)
+	}
+
 	return pfile, pfile.prepareForMaintaining(path)
+}
+
+func WithPemFileNamings(cname, pname string) PFOption {
+	return func(pfo *pemFileOptions) {
+		pfo.certname = cname
+		pfo.privatename = pname
+	}
+}
+
+func WithPemSizeLimit(size int64) PFOption {
+	return func(pfo *pemFileOptions) {
+		pfo.filesizelimit = size
+	}
+}
+
+//
+//
+//
+
+func withDefaultPemOptions() *pemFileOptions {
+	return &pemFileOptions{
+		certname:    "fullchain.pem",
+		privatename: "privkey.pem",
+	}
 }
 
 func openPemLink(path string) (_ *os.File, e error) {
@@ -74,9 +110,9 @@ func (m *PemFile) prepareForMaintaining(origpath string) (e error) {
 	m.Domain = paths[pathlen-2 : pathlen-1][0]
 
 	switch m.Name {
-	case "fullchain.pem":
+	case m.options.certname:
 		m.Type = PEM_CERTIFICATE
-	case "privkey.pem":
+	case m.options.privatename:
 		m.Type = PEM_PRIVATEKEY
 	default:
 		fmt.Println(m.Name)
@@ -84,33 +120,17 @@ func (m *PemFile) prepareForMaintaining(origpath string) (e error) {
 		return
 	}
 
-	return
-}
-
-func NewPemStorage() *PemStorage {
-	return &PemStorage{
-		st: make(map[string]*PemFile),
-	}
-}
-
-func (m *PemStorage) Put(pemfile *PemFile) {
-	actionWithLock(&m.mu, func() {
-		fmt.Println(filepath.Join(pemfile.Domain, pemfile.Name))
-		m.st[filepath.Join(pemfile.Domain, pemfile.Name)] = pemfile
-	})
-}
-
-func (m *PemStorage) Get(domain string, pemtype FileType) (*PemFile, bool) {
-	return actionReturbableWithRLock(&m.mu, func() (*PemFile, bool) {
-		var basename string
-		switch pemtype {
-		case PEM_CERTIFICATE:
-			basename = "fullchain.pem"
-		case PEM_PRIVATEKEY:
-			basename = "privkey.pem"
+	if m.options.filesizelimit != 0 {
+		var fdinfo os.FileInfo
+		if fdinfo, e = m.fd.Stat(); e != nil {
+			return e
 		}
 
-		pfile, ok := m.st[filepath.Join(domain, basename)]
-		return pfile, ok
-	})
+		if fdinfo.Size() > kbyteSize*m.options.filesizelimit {
+			return fmt.Errorf("could not maintain fiven file because of size limits, %d bytes (limit %d kbytes)",
+				fdinfo.Size(), kbyteSize*m.options.filesizelimit)
+		}
+	}
+
+	return
 }
