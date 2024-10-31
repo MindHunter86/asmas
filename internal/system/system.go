@@ -86,41 +86,6 @@ func (m *System) ReleaseBuffer(bb *bytes.Buffer) {
 	m.pembuffpool.Put(bb)
 }
 
-func (m *System) PeekFile(ftype PemType, name string, bb *bytes.Buffer) (e error) {
-	if bb == nil {
-		return ErrBufIsUndefined
-	}
-
-	var path string
-	switch ftype {
-	case PEM_CERTIFICATE:
-		path = filepath.Join(name, m.pempubname)
-	case PEM_PRIVATEKEY:
-		path = filepath.Join(name, m.pemkeyname)
-	default:
-		e = errors.New("BUG! unexpected file type recevied in function for pem file")
-		return
-	}
-
-	fmt.Println(path)
-
-	// !!!!
-	// !!!!
-	// !!!!
-	// var ok bool
-	var fd *os.File
-	// if fd, ok = m.mntdomains[path]; !ok {
-	// 	return ErrCertNotFound
-	// }
-
-	if _, e = fd.Read(bb.Bytes()); e != nil {
-		return
-	}
-
-	m.encodePayload(bb)
-	return
-}
-
 func (m *System) WritePemTo(domain string, ftype PemType, w io.Writer) (_ int, e error) {
 	if w == nil {
 		e = errors.New("BUG! undefined io.writer received")
