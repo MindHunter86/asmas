@@ -148,7 +148,7 @@ func middlewareAuthorization(c *fiber.Ctx) error {
 
 }
 
-func handleGetCertificate(c *fiber.Ctx) error {
+func handleGetCertificate(c *fiber.Ctx) (e error) {
 	var name string
 	if name = c.Params("name"); name == "" {
 		rdebugf(c, "hostname : %s", name)
@@ -157,27 +157,11 @@ func handleGetCertificate(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest)
 	}
 
-	aservice := c.UserContext().Value(utils.CKeyAuthService).(*auth.AuthService)
-
-	cert, e := aservice.CertificateByName(name)
-	if e != nil {
-		rlog(c).Error().Msg("an error occurred while peeking certificate by domain " + e.Error())
-		return fiber.NewError(fiber.StatusInternalServerError)
-	} else if utils.IsEmpty(cert) {
-		rlog(c).Error().Msg("an empty result received from auth service")
-		return fiber.NewError(fiber.StatusInternalServerError)
-	}
-
 	sservice := c.UserContext().Value(utils.CKeySystem).(*system.System)
-	buf := sservice.AcquireBuffer()
-	defer sservice.ReleaseBuffer(buf)
-
-	if e = sservice.PeekFile(system.PEM_CERTIFICATE, futils.UnsafeString(cert), buf); e != nil {
-		rlog(c).Error().Msg("an error occurred while peeking certificate from system")
+	if _, e = sservice.WritePemTo(name, system.PEM_CERTIFICATE, c); e != nil {
+		rlog(c).Error().Msg("an error occurred while peeking certificate from system, " + e.Error())
 		return fiber.NewError(fiber.StatusInternalServerError)
 	}
 
-	///
-
-	return c.Next()
+	return respondPlainWithStatus(c, fiber.StatusOK)
 }

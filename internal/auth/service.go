@@ -98,10 +98,6 @@ func (m *AuthService) AuthorizeHostname(name, hostname string) (ok bool, _ error
 	return
 }
 
-func (*AuthService) CertificateByName(name string) ([]byte, error) {
-	return nil, nil
-}
-
 //
 //
 //

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -18,11 +19,7 @@ import (
 type System struct {
 	certpath string
 
-	// !!!!!!!!!
-	// ! MUTEX !
 	pemstorage *PemStorage
-
-	pemlinks map[string]*os.File
 
 	pemsizelimit           int64
 	pembuffpool            *sync.Pool
@@ -52,7 +49,7 @@ func NewSystem(c context.Context, cc *cli.Context) *System {
 			},
 		},
 
-		pemstorage: NewPemStorage(),
+		pemstorage: NewPemStorage(c.Value(utils.CKeyLogger).(*zerolog.Logger)),
 
 		log:   c.Value(utils.CKeyLogger).(*zerolog.Logger),
 		done:  c.Done,
@@ -71,8 +68,7 @@ func (m *System) Bootstrap() {
 	defer m.log.Debug().Msg("system maintaining process has been finished")
 
 	if e := m.prepareCertificatePath(m.certpath); e != nil {
-		// log m.certpath debug
-		m.log.Error().Msg("an error occurred while preparing certificate path, " + e.Error())
+		m.log.Error().Msgf("an error occurred while preparing certificate path %s, %s", m.certpath, e.Error())
 		m.abort()
 		return
 	}
@@ -90,7 +86,7 @@ func (m *System) ReleaseBuffer(bb *bytes.Buffer) {
 	m.pembuffpool.Put(bb)
 }
 
-func (m *System) PeekFile(ftype FileType, name string, bb *bytes.Buffer) (e error) {
+func (m *System) PeekFile(ftype PemType, name string, bb *bytes.Buffer) (e error) {
 	if bb == nil {
 		return ErrBufIsUndefined
 	}
@@ -125,18 +121,67 @@ func (m *System) PeekFile(ftype FileType, name string, bb *bytes.Buffer) (e erro
 	return
 }
 
+func (m *System) WritePemTo(domain string, ftype PemType, w io.Writer) (_ int, e error) {
+	if w == nil {
+		e = errors.New("BUG! undefined io.writer received")
+		return
+	}
+
+	if m.pemstorage.st == nil {
+		e = errors.New("pem storage is not ready yet")
+		return
+	}
+
+	if m.pemstorage.st[domain] == nil {
+		e = errors.New("given domain is not found in pem storage")
+		return
+	}
+
+	var pfile *PemFile
+	if pfile = m.pemstorage.st[domain][ftype]; pfile == nil {
+		e = fmt.Errorf("BUG! there is no such pemtype (%d) for domain %s",
+			int(ftype), domain)
+		return
+	}
+
+	bb := m.AcquireBuffer()
+	defer m.ReleaseBuffer(bb)
+
+	bb.Reset()
+	bb.Grow(int(pfile.Size))
+	for i := 0; i < int(pfile.Size); i++ {
+		bb.WriteByte(0)
+	}
+
+	if _, e = pfile.fd.ReadAt(bb.Bytes(), 0); e != nil {
+		return
+	}
+
+	m.encodePayload(bb)
+	return w.Write(bb.Bytes())
+}
+
 //
 //
 //
 
 func (m *System) closeMaintainedFiles() {
-	// var e error
+	var e error
 
-	// for _, file := range m.mntdomains {
-	// 	if e = file.Close(); e != nil {
-	// 		m.log.Error().Msg("an error occurred while closing opened PEM file, " + e.Error())
-	// 	}
-	// }
+	m.pemstorage.VisitAll(func(domain string, pfiles []*PemFile) {
+		for _, dfile := range pfiles {
+			if dfile == nil {
+				continue
+			}
+
+			if e = dfile.fd.Close(); e != nil {
+				m.log.Error().Msg("an error occurred while closing opened PEM file, " + e.Error())
+				continue
+			}
+
+			m.log.Trace().Msgf("file %s of domain %s has been closed", dfile.Name, dfile.Domain)
+		}
+	})
 }
 
 func (m *System) prepareCertificatePath(path string) (e error) {
@@ -145,41 +190,16 @@ func (m *System) prepareCertificatePath(path string) (e error) {
 	}
 
 	if zerolog.GlobalLevel() <= zerolog.DebugLevel {
-		m.pemstorage.VisitAll(func(path string, pfile *PemFile) {
-			m.log.Trace().Msgf("found file - %s (%s)", path, pfile.fd.Name())
+		m.pemstorage.VisitAll(func(domain string, pfiles []*PemFile) {
+			for _, dfile := range pfiles {
+				if dfile == nil {
+					continue
+				}
+
+				m.log.Trace().Msgf("found domain's (%s) file %s)", domain, dfile.fd.Name())
+			}
 		})
 	}
-
-	// m.pemstorage.VisitAll(func(path string, pfile *PemFile) {
-
-	// })
-
-	// for _, file := range m.mntdomains {
-	// 	filepaths := strings.Split(filepath.Clean(file.Name()), "/")
-	// 	fnlen := len(filepaths)
-
-	// 	filename, parent := filepaths[fnlen-1:][0], filepaths[fnlen-2 : fnlen-1][0]
-	// 	if filename == "" || filename == "." {
-	// 		m.log.Warn().Msgf("file %s was skipped because of unexpected result of filename.Base()", file.Name())
-	// 	}
-
-	// 	var fileinfo os.FileInfo
-	// 	if fileinfo, _ = file.Stat(); e != nil {
-	// 		m.log.Warn().Msgf("file %s was skipped because of Stat() error, %s", filename, e.Error())
-	// 		continue
-	// 	}
-
-	// 	if fileinfo.Size() >= kbyteSize*m.pemsizelimit {
-	// 		m.log.Warn().Msgf("file %s was skipped because of filesize limit, file size %d, limit %d",
-	// 			filename, fileinfo.Size(), kbyteSize*m.pemsizelimit)
-	// 		continue
-	// 	}
-
-	// 	newpath := filepath.Join(parent, filename)
-	// 	m.mntdomains[newpath] = file
-
-	// 	m.log.Info().Msgf("file %s (%s) was added in maintaining domain list", filename, newpath)
-	// }
 
 	return
 }
@@ -258,8 +278,12 @@ func (m *System) encodePayload(bb *bytes.Buffer) {
 	databuf.Write(bb.Bytes())
 
 	elen := base64.StdEncoding.EncodedLen(bb.Len())
+
 	bb.Reset()
 	bb.Grow(elen)
+	for i := 0; i < int(elen); i++ {
+		bb.WriteByte(0)
+	}
 
 	base64.StdEncoding.Encode(bb.Bytes(), databuf.Bytes())
 }

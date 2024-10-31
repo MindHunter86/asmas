@@ -27,3 +27,8 @@ func respond(status int, msg, desc string) {
 	// 	rlog(c).Error().Msg("could not respond with JSON error - " + e.Error())
 	// }
 }
+
+func respondPlainWithStatus(c *fiber.Ctx, status int) error {
+	c.Set(fiber.HeaderContentType, fiber.MIMETextPlainCharsetUTF8)
+	return c.SendStatus(status)
+}

@@ -9,22 +9,25 @@ import (
 	"sync"
 )
 
-type FileType uint8
+type PemType uint8
 
 const (
-	PEM_CERTIFICATE FileType = iota
+	PEM_CERTIFICATE PemType = iota
 	PEM_PRIVATEKEY
 	PEM_CHAIN
+	_PEM_MAX_SIZE
 )
 
 const kbyteSize int64 = 1024
 
 type (
 	PemFile struct {
-		Type FileType
+		Type PemType
 
 		Name   string
 		Domain string
+
+		Size int64
 
 		options *pemFileOptions
 
@@ -130,6 +133,8 @@ func (m *PemFile) prepareForMaintaining(origpath string) (e error) {
 			return fmt.Errorf("could not maintain fiven file because of size limits, %d bytes (limit %d kbytes)",
 				fdinfo.Size(), kbyteSize*m.options.filesizelimit)
 		}
+
+		m.Size = fdinfo.Size()
 	}
 
 	return
