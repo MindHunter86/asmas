@@ -1,0 +1,136 @@
+# Github Actions: asmas builder
+name: asmas builder
+concurrency: production
+
+on:
+  release:
+    types:
+      - created
+  workflow_dispatch:
+
+jobs:
+  init:
+    name: CI initialization
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+      - id: output-forming
+        run: |
+          # docker image forming (lower-casing)
+          ## https://github.community/t/additional-function-s-lowercase-uppercase/140632
+          REPOSITORY=${{ github.repository }}
+          echo "DOCKER_IMAGE=${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+          # docker tag forming
+          REF=${{ github.ref }}
+          echo "DOCKER_TAG=${REF#refs/*/}" >> "$GITHUB_OUTPUT"
+
+          # golang application constants
+          echo "BUILD_GOTAG=$(git describe --long | sed 's/\([^-]*-g\)/r\1/;s/-/./g')" >> "$GITHUB_OUTPUT"
+          echo "BUILD_GOTIME=$(date --rfc-3339=seconds)" >> "$GITHUB_OUTPUT"
+      - run: |
+          cat <<-EOF
+          =============================
+          Github Actions outputs debug:
+          DOCKER_TAG: ${{ steps.output-forming.outputs.DOCKER_TAG }}
+          DOCKER_IMAGE: ${{ steps.output-forming.outputs.DOCKER_IMAGE }}
+          BUILD_GOTAG: ${{ steps.output-forming.outputs.BUILD_GOTAG }}
+          BUILD_GOTIME: ${{ steps.output-forming.outputs.BUILD_GOTIME }}
+
+          =============================
+          Github Actions environment debug:
+          $(printenv)
+          EOF
+    outputs:
+      DOCKER_TAG: ${{ steps.output-forming.outputs.DOCKER_TAG }}
+      DOCKER_IMAGE: ${{ steps.output-forming.outputs.DOCKER_IMAGE }}
+      BUILD_GOTAG: ${{ steps.output-forming.outputs.BUILD_GOTAG }}
+      BUILD_GOTIME: ${{ steps.output-forming.outputs.BUILD_GOTIME }}
+
+  image_build_with_depot:
+    name: build docker image with Depot
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+      id-token: write
+      packages: write
+    needs: [ "init" ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+      - uses: depot/setup-action@v1
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: depot/build-push-action@v1
+        with:
+          push: true
+          project: ${{ secrets.DEPOT_PROJECT }}
+          tags: ghcr.io/${{ needs.init.outputs.DOCKER_IMAGE }}:${{ needs.init.outputs.DOCKER_TAG }}
+          build-args: |
+            GOAPP_MAIN_VERSION=${{ needs.init.outputs.BUILD_GOTAG }}
+            GOAPP_MAIN_BUILDTIME=${{ needs.init.outputs.BUILD_GOTIME }}
+      - name: Telegram notify
+        run: |
+          cat <<- EOF | /usr/bin/curl -s -XPOST "https://api.telegram.org/${{ secrets.TGRM_BOT_SECRET }}/sendMessage" \
+            -d chat_id="${{ secrets.TGRM_CHAT_ID }}" -d text="$(cat /dev/stdin)" &>/dev/null
+          asmas Builder (Github Actions)
+
+          Build ${{ github.run_number }} of job ${{ github.workflow }} has been completed.
+          Builded commit: ${{ github.sha }}
+          EOF
+
+  matrix_binary_build_pahse:
+    name: build binaries for linux, windows, mac
+    runs-on: ubuntu-latest
+    needs: [ "init" ]
+    strategy:
+      max-parallel: 20 # github free plan value
+      matrix:
+        goos: ["linux", "windows", "darwin"]
+        goarch: ["386", "amd64"]
+        include: # build for A* and M1 processes
+        - goos: darwin
+          goarch: arm64
+        - goos: windows
+          goarch: 386
+          extention: .exe
+        - goos: windows
+          goarch: amd64
+          extention: .exe
+        exclude:
+        - goos: darwin
+          goarch: 386
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ github.ref }}
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 1.19.10
+    - name: Download all required imports
+      run: go mod download
+    - name: Build source code for ${{ matrix.goos }} ${{ matrix.goarch }}
+      run: go build -trimpath -ldflags="-s -w -X 'main.version=${{ needs.init.outputs.BUILD_GOTAG }}' -X 'main.buildtime=${{ needs.init.outputs.BUILD_GOTIME }}'" -o ./asmas-${{ matrix.goos }}.${{ matrix.goarch }}${{ matrix.extention }} cmd/asmas/main.go cmd/asmas/flags.go
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+    - name: Install upx
+      run: sudo apt-get install -y upx
+    - name: Compress binary
+      run: upx -9 -k ./asmas-${{ matrix.goos }}.${{ matrix.goarch }}${{ matrix.extention }}
+    - name: Upload release asset
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.init.outputs.BUILD_TAG }}
+        files: ./asmas-${{ matrix.goos }}.${{ matrix.goarch }}${{ matrix.extention }}
