@@ -54,9 +54,7 @@ jobs:
     name: build docker image with Depot
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
-      repository-projects: write
+      contents: read
       id-token: write
       packages: write
     needs: [ "init" ]
@@ -66,11 +64,11 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref }}
       - uses: depot/setup-action@v1
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      # - uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
       - uses: depot/build-push-action@v1
         with:
           push: true
