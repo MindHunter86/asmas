@@ -127,7 +127,7 @@ func (m *System) WritePemTo(domain string, ftype PemType, w io.Writer) (_ int, e
 func (m *System) closeMaintainedFiles() {
 	var e error
 
-	m.pemstorage.VisitAll(func(domain string, pfiles []*PemFile) {
+	m.pemstorage.VisitAll(func(_ string, pfiles []*PemFile) {
 		for _, dfile := range pfiles {
 			if dfile == nil {
 				continue
