@@ -76,8 +76,6 @@ func (m *AuthService) Boostrap() {
 		return
 	}
 
-	// !! LOAD DOMAINS
-
 	m.loop()
 }
 

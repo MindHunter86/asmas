@@ -30,12 +30,6 @@ type System struct {
 	abort context.CancelFunc
 }
 
-// !!!!
-// !!!!
-// !!!!
-var ErrCertNotFound = errors.New("")
-var ErrBufIsUndefined = errors.New("")
-
 func NewSystem(c context.Context, cc *cli.Context) *System {
 	return &System{
 		certpath:   cc.String("system-cert-path"),

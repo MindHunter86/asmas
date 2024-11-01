@@ -80,7 +80,7 @@ func NewService(c *cli.Context, l *zerolog.Logger, s io.Writer) *Service {
 		// JSONEncoder: easyjson.Marshal,
 		// JSONDecoder: easyjson.Unmarshal,
 
-		// ErrorHandler: service.fb.ErrorHandler,
+		ErrorHandler: service.fiberDefaultErrorHandler,
 	})
 
 	return service

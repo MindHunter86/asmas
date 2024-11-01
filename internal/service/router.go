@@ -2,11 +2,13 @@ package service
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"runtime/debug"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
@@ -95,46 +97,44 @@ func (m *Service) fiberMiddlewareInitialization() {
 		},
 	}))
 
-	// !!!
-	// !!!
-	// !!!
-	// !!!
-	// !!!
-	// !!!
-
 	// time collector + logger
-	// m.fb.Use(func(c *fiber.Ctx) (e error) {
-	// 	started, e := time.Now(), c.Next()
-	// 	elapsed := time.Since(started).Round(time.Microsecond)
+	m.fb.Use(func(c *fiber.Ctx) (e error) {
+		started, e := time.Now(), c.Next()
+		elapsed := time.Since(started).Round(time.Microsecond)
 
-	// 	status, lvl := c.Response().StatusCode(), utils.HTTPAccessLogLevel
+		status, lvl := c.Response().StatusCode(), HTTPAccessLogLevel
 
-	// 	// ? not profitable
-	// 	// TODO too much allocations here:
-	// 	err := AcquireFErr()
-	// 	defer ReleaseFErr(err)
+		// ? not profitable
+		err := AcquireFErr()
+		defer ReleaseFErr(err)
 
-	// 	var cause string
-	// 	if errors.As(e, &err) || status >= fiber.StatusInternalServerError {
-	// 		status, lvl, cause = err.Code, zerolog.WarnLevel, err.Error()
-	// 	}
+		var cause string
+		if errors.As(e, &err) || status >= fiber.StatusInternalServerError {
+			status, lvl, cause = err.Code, zerolog.WarnLevel, err.Error()
+		}
 
-	// 	rlog(c).WithLevel(lvl).
-	// 		Int("status", status).
-	// 		Str("method", c.Method()).
-	// 		Str("path", c.Path()).
-	// 		Str("ip", c.IP()).
-	// 		Dur("latency", elapsed).
-	// 		Str("user-agent", c.Get(fiber.HeaderUserAgent)).Msg(cause)
+		rlog(c).WithLevel(lvl).
+			Int("status", status).
+			Str("method", c.Method()).
+			Str("path", c.Path()).
+			Str("ip", c.IP()).
+			Dur("latency", elapsed).
+			Str("user-agent", c.Get(fiber.HeaderUserAgent)).Msg(cause)
 
-	// 	return
-	// })
+		return
+	})
 }
 
 func (m *Service) fiberRouterInitialization() {
 	//
-	// ASMAS internal cache api
-	m.fb.Get("/healthz", nil)
+	// ASMAS health api
+	m.fb.Get("/healthz", func(c *fiber.Ctx) error {
+		return respondPlainWithStatus(c, fiber.StatusOK)
+	})
+
+	//
+	// ASMAS inteernal api
+	// inter := m.fb.Group("/internal", nil)
 
 	//
 	// ASMAS public v1 api
@@ -142,7 +142,5 @@ func (m *Service) fiberRouterInitialization() {
 
 	certs := v1.Group("/certificates/:name", middlewareAuthorization)
 	certs.Get("/public", handleGetCertificate)
-
-	// v1.Get("/certificates/public/:name", auth.HandleGetCertificate)
-	// v1.Get("/certificates/private/:name", )
+	certs.Get("/private", handleGetPrivate)
 }
