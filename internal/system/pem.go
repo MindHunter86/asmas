@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 type PemType uint8
@@ -22,17 +21,13 @@ const kbyteSize int64 = 1024
 
 type (
 	PemFile struct {
-		Type PemType
-
 		Name   string
 		Domain string
-
-		Size int64
+		Type   PemType
+		Size   int64
 
 		options *pemFileOptions
-
-		mu sync.RWMutex
-		fd *os.File
+		fd      *os.File
 	}
 	pemFileOptions struct {
 		certname      string
