@@ -36,13 +36,16 @@ func (m *AuthService) validateConfigSign(payload []byte) (_ []byte, e error) {
 	return signblock.Bytes, e
 }
 
-func (*AuthService) PrepareHMACMessage(size int, payload ...string) []byte {
+func (*AuthService) PrepareHMACMessage(payload ...string) []byte {
 	payloadlen := len(payload)
-	if size == 0 || payloadlen == 0 {
+	if payloadlen == 0 {
 		return nil
 	}
 
-	message := make([]byte, 0, size)
+	// todo
+	// use bytepufferpool
+	// message := make([]byte, 0, payloadlen)
+	var message []byte
 	for i, chunk := range payload {
 		message = append(message, futils.UnsafeBytes(chunk)...)
 
@@ -54,7 +57,7 @@ func (*AuthService) PrepareHMACMessage(size int, payload ...string) []byte {
 	return message
 }
 
-func (m *AuthService) VerifyHMACSign(message, signed []byte) (string, bool) {
+func (m *AuthService) SignHMACMessage(message []byte) string {
 	var buf256 [sha256.Size]byte
 
 	buf, elen :=
@@ -70,10 +73,15 @@ func (m *AuthService) VerifyHMACSign(message, signed []byte) (string, bool) {
 
 	if _, e := mac.Write(message); e != nil {
 		m.log.Error().Msg("an error occurred while writing in hmac buffer, " + e.Error())
-		return "", false
+		return ""
 	}
 
 	// todo save all buffers for reusing
 	hex.Encode(buf.Bytes(), mac.Sum(buf256[:0]))
-	return buf.String(), bytes.Equal(buf.Bytes(), signed)
+	return buf.String()
+}
+
+func (m *AuthService) SignWithVerifyHMACMessage(payload, signed []byte) (_ string, ok bool) {
+	message := m.SignHMACMessage(payload)
+	return message, bytes.Equal(futils.UnsafeBytes(message), signed)
 }

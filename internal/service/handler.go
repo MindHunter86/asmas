@@ -68,16 +68,15 @@ func middlewareAuthentification(c *fiber.Ctx) error {
 	aservice := c.UserContext().Value(utils.CKeyAuthService).(*auth.AuthService)
 
 	var payload []byte
-	payloadlen := len(c.IP()) + len(c.Request().String()) + len(hostname)
-	if payload = aservice.PrepareHMACMessage(payloadlen, c.IP(), c.Path(), hostname); payload == nil {
-		rdebugf(c, "chunks: %s | %s | %s", c.IP(), c.Path(), hostname)
+	if payload = aservice.PrepareHMACMessage(c.Path(), hostname); payload == nil {
+		rdebugf(c, "chunks: %s | %s", c.Path(), hostname)
 
 		rlog(c).Error().Msg("unexpected result while preparing message for sign verification")
 		return fiber.NewError(fiber.StatusInternalServerError)
 	}
 
-	if expect, ok := aservice.VerifyHMACSign(payload, futils.UnsafeBytes(sign)); !ok {
-		rdebugf(c, "chunks : %s | %s | %s", c.IP(), c.Path(), hostname)
+	if expect, ok := aservice.SignWithVerifyHMACMessage(payload, futils.UnsafeBytes(sign)); !ok {
+		rdebugf(c, "chunks : %s | %s", c.Path(), hostname)
 		rdebugf(c, "recevied sign %s, expect %s", sign, expect)
 
 		rlog(c).Error().Msg("decline request with unverified hmac sign")
@@ -111,6 +110,21 @@ func middlewareAuthorization(c *fiber.Ctx) error {
 
 	return c.Next()
 
+}
+
+func handleGetCertificates(c *fiber.Ctx) (e error) {
+	hostname := c.Locals(auth.LKeyHostname).(string)
+	aservice := c.UserContext().Value(utils.CKeyAuthService).(*auth.AuthService)
+
+	var authorizations []string
+	if authorizations, e = aservice.GetAvailableDomains(hostname); e != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, e.Error())
+	} else if len(authorizations) == 0 {
+		return fiber.NewError(fiber.StatusNotFound)
+	}
+
+	c.WriteString(strings.Join(authorizations, "|"))
+	return respondPlainWithStatus(c, fiber.StatusOK)
 }
 
 func handleGetCertificate(c *fiber.Ctx) (e error) {

@@ -36,6 +36,13 @@ type AuthService struct {
 	abort context.CancelFunc
 }
 
+func NewAuthClient(c context.Context, cc *cli.Context) *AuthService {
+	return &AuthService{
+		token: cc.String("auth-sign-token"),
+		log:   c.Value(utils.CKeyLogger).(*zerolog.Logger),
+	}
+}
+
 func NewAuthService(c context.Context, cc *cli.Context) *AuthService {
 	return &AuthService{
 		token: cc.String("auth-sign-token"),
@@ -57,6 +64,10 @@ func NewAuthService(c context.Context, cc *cli.Context) *AuthService {
 }
 
 func (m *AuthService) Boostrap() {
+	if m.client == nil {
+		return
+	}
+
 	var e error
 	if m.signers, e = m.loadConfigSigners(); e != nil {
 		m.log.Error().Msg("an error occurred while loading signers - " + e.Error())
@@ -90,10 +101,28 @@ func (m *AuthService) AuthorizeHostname(name, hostname string) (ok bool, _ error
 			return false
 		}
 
-		return auth.isAuthorizedFqdn(hostname)
+		return auth.isAuthorizationAllowed(hostname)
 	})
 
 	return
+}
+
+func (m *AuthService) GetAvailableDomains(hostname string) (_ []string, e error) {
+	if !m.isApiReady() {
+		return nil, errors.New("auth service api is not ready yet")
+	}
+
+	return actionReturbableWithRLock[[]string](&m.mu, func() []string {
+		var authorizations []string
+
+		for _, authorization := range m.authlist.AuthorizationList {
+			if authorization.isAuthorizationAllowed(hostname) {
+				authorizations = append(authorizations, authorization.Name)
+			}
+		}
+
+		return authorizations
+	}), e
 }
 
 //
@@ -204,9 +233,9 @@ func (m *AuthService) validateAuthorizationList(authlist *YamlConfig) (ok bool) 
 		}
 
 		// check for regexp template
-		domlen := len(entity.Domains)
-		if entity.Domains[:1] == "/" && entity.Domains[domlen-1:domlen] == "/" {
-			entity.domregexp = regexp.MustCompile(entity.Domains[1 : domlen-1])
+		allowlen := len(entity.Allow)
+		if entity.Allow[:1] == "/" && entity.Allow[allowlen-1:allowlen] == "/" {
+			entity.allowregexp = regexp.MustCompile(entity.Allow[1 : allowlen-1])
 		}
 
 		m.log.Info().Msgf("loaded authorized domain with id %s", entity.Name)

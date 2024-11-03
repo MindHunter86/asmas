@@ -18,10 +18,17 @@ type (
 	}
 	YamlAuthorization struct {
 		Name    string
-		Domains string                  `yaml:",omitempty"`
-		Reload  map[string]*YamlService `yaml:",omitempty"`
+		Domains string `yaml:",omitempty"`
 
-		domregexp *regexp.Regexp
+		// !!!!
+		// !!!!
+		// !!!!
+		AltNames int `yaml:"-"`
+
+		Allow  string                  `yaml:",omitempty"`
+		Reload map[string]*YamlService `yaml:",omitempty"`
+
+		allowregexp *regexp.Regexp
 	}
 	YamlService struct {
 		Command []string `yaml:"cmd"`
@@ -38,12 +45,12 @@ func (m *YamlConfig) authorizationByFqdn(fqdn string) *YamlAuthorization {
 	return nil
 }
 
-func (m *YamlAuthorization) isAuthorizedFqdn(fqdn string) bool {
-	if m.domregexp == nil {
-		domains := strings.Split(m.Domains, ",")
+func (m *YamlAuthorization) isAuthorizationAllowed(hostname string) bool {
+	if m.allowregexp == nil {
+		allows := strings.Split(m.Allow, ",")
 
-		for _, domain := range domains {
-			if domain == fqdn {
+		for _, allow := range allows {
+			if allow == hostname {
 				return true
 			}
 		}
@@ -51,7 +58,7 @@ func (m *YamlAuthorization) isAuthorizedFqdn(fqdn string) bool {
 		return false
 	}
 
-	return m.domregexp.Match(futils.UnsafeBytes(fqdn))
+	return m.allowregexp.Match(futils.UnsafeBytes(hostname))
 }
 
 //

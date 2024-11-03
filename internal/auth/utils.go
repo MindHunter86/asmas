@@ -16,7 +16,7 @@ func actionWithLock(mu *sync.RWMutex, action func()) {
 	action()
 }
 
-func actionReturbableWithRLock[V bool](mu *sync.RWMutex, action func() V) V {
+func actionReturbableWithRLock[V bool | []string](mu *sync.RWMutex, action func() V) V {
 	mu.RLock()
 	defer mu.RUnlock()
 

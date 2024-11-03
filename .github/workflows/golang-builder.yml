@@ -94,17 +94,11 @@ jobs:
     strategy:
       max-parallel: 20 # github free plan value
       matrix:
-        goos: ["linux", "windows", "darwin"]
+        goos: ["linux","darwin"]
         goarch: ["386", "amd64"]
         include: # build for A* and M1 processes
         - goos: darwin
           goarch: arm64
-        - goos: windows
-          goarch: 386
-          extention: .exe
-        - goos: windows
-          goarch: amd64
-          extention: .exe
         exclude:
         - goos: darwin
           goarch: 386
