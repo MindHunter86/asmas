@@ -14,12 +14,15 @@ import (
 	"github.com/rs/zerolog/diode"
 	"github.com/urfave/cli/v2"
 
+	"github.com/MindHunter86/asmas/internal/client"
 	"github.com/MindHunter86/asmas/internal/service"
 	"github.com/MindHunter86/asmas/internal/utils"
 )
 
 var version = "local" // -ldflags="-X main.version=X.X.X"
 var buildtime = "never"
+
+const CLI_COMMAND_ARG uint8 = 0
 
 func main() {
 	var exitcode int
@@ -30,6 +33,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "diodes dropped %d messages; check your log-rate, please\n", missed)
 	})
 	defer dwr.Close()
+
+	var syslogWriter = io.Discard
 
 	// logger
 	log := zerolog.New(zerolog.ConsoleWriter{
@@ -62,8 +67,28 @@ func main() {
 	})
 
 	app.HideHelpCommand = true
-	app.Flags = flagsInitialization(
+	app.Flags = defaultFlagsInitialization(
 		!strings.Contains(strings.Join(os.Args, " "), "--expert-mode"))
+
+	app.DefaultCommand = "service"
+	app.Commands = []*cli.Command{
+		{
+			Name: "service",
+			Flags: serviceFlagsInitialization(
+				!strings.Contains(strings.Join(os.Args, " "), "--expert-mode")),
+			Action: func(c *cli.Context) error {
+				return c.App.Action(c)
+			},
+		},
+		{
+			Name: "client",
+			Flags: clientFlagsInitialization(
+				!strings.Contains(strings.Join(os.Args, " "), "--expert-mode")),
+			Action: func(c *cli.Context) error {
+				return c.App.Action(c)
+			},
+		},
+	}
 
 	app.Action = func(c *cli.Context) (e error) {
 		var lvl zerolog.Level
@@ -72,7 +97,6 @@ func main() {
 		}
 		zerolog.SetGlobalLevel(lvl)
 
-		var syslogWriter = io.Discard
 		if len(c.String("syslog-server")) != 0 {
 			if runtime.GOOS == "windows" {
 				log.Error().Msg("sorry, but syslog is not worked for windows; golang does not support syslog for win systems")
@@ -98,7 +122,13 @@ func main() {
 		log.Debug().Msgf("environment - %v", os.Environ())
 
 		log.Debug().Msgf("%s (%s) builded %s now is ready...", app.Name, version, buildtime)
-		return service.NewService(c, &log, syslogWriter).Bootstrap()
+
+		switch c.Command.HasName("service") {
+		case true:
+			return service.NewService(c, &log, syslogWriter).Bootstrap()
+		default:
+			return client.NewClient(c, &log).Bootstrap()
+		}
 	}
 
 	// TODO sort.Sort of Flags uses too much allocs; temporary disabled

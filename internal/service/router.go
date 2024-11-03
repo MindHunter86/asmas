@@ -140,6 +140,8 @@ func (m *Service) fiberRouterInitialization() {
 	// ASMAS public v1 api
 	v1 := m.fb.Group("/v1", middlewareAuthentification)
 
+	v1.Get("/certificates", handleGetCertificates)
+
 	certs := v1.Group("/certificates/:name", middlewareAuthorization)
 	certs.Get("/public", handleGetCertificate)
 	certs.Get("/private", handleGetPrivate)

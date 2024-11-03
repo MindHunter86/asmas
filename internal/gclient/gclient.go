@@ -60,8 +60,8 @@ func NewHttpClient(cc *cli.Context, log *zerolog.Logger) *HttpClient {
 	return &HttpClient{
 		HostClient: &fasthttp.HostClient{
 			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent#crawler_and_bot_ua_strings
-			Name: fmt.Sprintf("Mozilla/5.0 (compatible; %s/%s; +https://anilibria.top/support)",
-				cc.App.Name, cc.App.Version),
+			Name: fmt.Sprintf("Mozilla/5.0 (compatible; %s/%s; +mailto:%s)",
+				cc.App.Name, cc.App.Version, cc.App.Authors[0].Email),
 
 			Addr:  cc.String("github-api-addr"),
 			IsTLS: bytes.Equal(rri.Scheme(), []byte("https")),

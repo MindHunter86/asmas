@@ -4,11 +4,13 @@ go 1.19
 
 require (
 	github.com/ProtonMail/go-crypto v1.0.0
+	github.com/containerd/fifo v1.1.0
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/mailru/easyjson v0.7.7
 	github.com/rs/zerolog v1.33.0
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/valyala/fasthttp v1.51.0
+	golang.org/x/sys v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -28,5 +30,4 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
 )

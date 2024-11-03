@@ -32,7 +32,7 @@ func rlog(c *fiber.Ctx) *zerolog.Logger {
 }
 
 func rdebugf(c *fiber.Ctx, format string, opts ...interface{}) {
-	if zerolog.GlobalLevel() <= zerolog.DebugLevel {
+	if zerolog.GlobalLevel() > zerolog.DebugLevel {
 		return
 	}
 

@@ -102,10 +102,11 @@ func (m *Service) Bootstrap() (e error) {
 
 	gCtx, gAbort = context.WithCancel(context.Background())
 	gCtx = context.WithValue(gCtx, utils.CKeyLogger, gLog)
-	gCtx = context.WithValue(gCtx, utils.CKeyCliCtx, gCli)
 	gCtx = context.WithValue(gCtx, utils.CKeyAbortFunc, gAbort)
 	gCtx = context.WithValue(gCtx, utils.CKeyErrorChan, echan)
 
+	// !!!!
+	// todo - refactor this shit (see Client.Bootstrap())
 	// defer m.checkErrorsBeforeClosing(echan)
 	// defer wg.Wait() // !!
 	defer gLog.Debug().Msg("waiting for opened goroutines")
@@ -150,7 +151,7 @@ func (m *Service) loop(errs chan error, wg *sync.WaitGroup) (e error) {
 	defer wg.Wait()
 
 	kernSignal := make(chan os.Signal, 1)
-	signal.Notify(kernSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Notify(kernSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	gLog.Debug().Msg("initiate main event loop...")
 	defer gLog.Debug().Msg("main event loop has been closed")

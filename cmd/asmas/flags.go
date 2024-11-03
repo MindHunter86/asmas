@@ -6,7 +6,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func flagsInitialization(expertmode bool) []cli.Flag {
+func defaultFlagsInitialization(expertmode bool) []cli.Flag {
 	return []cli.Flag{
 		// common settings
 		&cli.StringFlag{
@@ -22,13 +22,6 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			Category:           "Common settings",
 			Usage:              "show hidden flags",
 			DisableDefaultText: true,
-		},
-
-		// debug feature-flags
-		&cli.BoolFlag{
-			Name:     "debug-skip-github-connect",
-			Category: "Debug options",
-			Hidden:   expertmode,
 		},
 
 		// common settings : syslog
@@ -51,6 +44,111 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 			Category: "Syslog settings",
 			Usage:    "optional setting; more information in syslog RFC",
 			Value:    "",
+			Hidden:   expertmode,
+		},
+
+		// system settings
+		&cli.StringFlag{
+			Name:     "system-cert-path",
+			Category: "System settings",
+			Usage:    "should be like certbot-args-certs-path",
+			Value:    "testdata/live",
+		},
+		&cli.Int64Flag{
+			Name:     "system-pem-size-limit",
+			Category: "System settings",
+			Usage:    "certificate in pem format file size limit in kilobytes",
+			Value:    10,
+			Hidden:   expertmode,
+		},
+		&cli.StringFlag{
+			Name:     "system-pem-pubname",
+			Category: "System settings",
+			Usage:    "",
+			Value:    "fullchain.pem",
+			Hidden:   expertmode,
+		},
+		&cli.StringFlag{
+			Name:     "system-pem-keyname",
+			Category: "System settings",
+			Usage:    "",
+			Value:    "privkey.pem",
+			Hidden:   expertmode,
+		},
+	}
+}
+
+func clientFlagsInitialization(expertmode bool) []cli.Flag {
+	return []cli.Flag{
+		// asmas service settings
+		&cli.StringFlag{
+			Name:     "asmas-sign-token",
+			Category: "Asmas API settings",
+			Value:    "https://acme.example.com",
+		},
+
+		// asmas http client settings
+		&cli.StringFlag{
+			Name:     "asmas-api-url",
+			Category: "Asmas client settings",
+			Value:    "https://acme.example.com",
+		},
+		&cli.BoolFlag{
+			Name:     "asmas-ssl-insecure",
+			Category: "Asmas client settings",
+			Hidden:   expertmode,
+		},
+		&cli.IntFlag{
+			Name:     "asmas-max-conns",
+			Category: "Asmas client settings",
+			Value:    32,
+			Hidden:   expertmode,
+		},
+		&cli.DurationFlag{
+			Name:     "asmas-timeout-read",
+			Category: "Asmas client settings",
+			Value:    3 * time.Second,
+		},
+		&cli.DurationFlag{
+			Name:     "asmas-timeout-write",
+			Category: "Asmas client settings",
+			Value:    3 * time.Second,
+		},
+		&cli.DurationFlag{
+			Name:     "asmas-timeout-idle",
+			Category: "Asmas client settings",
+			Usage:    "idle keep-alive connections are closed after this duration",
+			Value:    5 * time.Minute,
+		},
+		&cli.DurationFlag{
+			Name:     "asmas-timeout-conn",
+			Category: "Asmas client settings",
+			Usage:    "keep-alive connections are closed after this duration",
+			Value:    1 * time.Second,
+		},
+		&cli.IntFlag{
+			Name:     "asmas-tcpdial-concurr",
+			Category: "Asmas client settings",
+			Usage:    "concurrency controls the maximum number of concurrent Dials that can be performed using this object. Setting this to 0 means unlimited",
+			Value:    0,
+			Hidden:   expertmode,
+		},
+		&cli.DurationFlag{
+			Name:     "asmas-dnscache-dur",
+			Category: "Asmas client settings",
+			Usage:    "this may be used to override the default DNS cache duration",
+			Value:    1 * time.Minute,
+			Hidden:   expertmode,
+		},
+	}
+}
+
+func serviceFlagsInitialization(expertmode bool) []cli.Flag {
+	return []cli.Flag{
+		// debug feature-flags
+		&cli.BoolFlag{
+			Name:     "debug-skip-github-connect",
+			Category: "Debug options",
 			Hidden:   expertmode,
 		},
 
@@ -231,41 +329,12 @@ func flagsInitialization(expertmode bool) []cli.Flag {
 		&cli.StringFlag{
 			Name:     "certbot-args-certs-path",
 			Category: "Certbot settings",
-			Value:    "/etc/letsencrypt/live/",
+			Value:    "testdata/live",
 		},
 		&cli.StringFlag{
 			Name:     "certbot-args-account-email",
 			Category: "Certbot settings",
 			Value:    "root@example.com",
-		},
-
-		// system settings
-		&cli.StringFlag{
-			Name:     "system-cert-path",
-			Category: "System settings",
-			Usage:    "should be like certbot-args-certs-path",
-			Value:    "/etc/letsencrypt/live/",
-		},
-		&cli.Int64Flag{
-			Name:     "system-pem-size-limit",
-			Category: "System settings",
-			Usage:    "certificate in pem format file size limit in kilobytes",
-			Value:    10,
-			Hidden:   expertmode,
-		},
-		&cli.StringFlag{
-			Name:     "system-pem-pubname",
-			Category: "System settings",
-			Usage:    "",
-			Value:    "fullchain.pem",
-			Hidden:   expertmode,
-		},
-		&cli.StringFlag{
-			Name:     "system-pem-keyname",
-			Category: "System settings",
-			Usage:    "",
-			Value:    "privkey.pem",
-			Hidden:   expertmode,
 		},
 	}
 }

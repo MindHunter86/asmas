@@ -41,6 +41,7 @@ export/
 
 # Test data
 testdata/
+*.pipe
 
 # Dynamic trash contenуездаt
 .bash_history
