@@ -36,7 +36,6 @@ type AuthService struct {
 	abort context.CancelFunc
 }
 
-
 func NewAuthClient(c context.Context, cc *cli.Context) *AuthService {
 	return &AuthService{
 		token: cc.String("auth-sign-token"),
