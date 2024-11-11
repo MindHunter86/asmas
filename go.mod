@@ -3,7 +3,7 @@ module github.com/MindHunter86/asmas
 go 1.19
 
 require (
-	github.com/ProtonMail/go-crypto v1.0.0
+	github.com/ProtonMail/go-crypto v1.1.2
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/mailru/easyjson v0.7.7
 	github.com/rs/zerolog v1.33.0
