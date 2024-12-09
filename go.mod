@@ -8,7 +8,7 @@ require (
 	github.com/mailru/easyjson v0.7.7
 	github.com/rs/zerolog v1.33.0
 	github.com/urfave/cli/v2 v2.27.5
-	github.com/valyala/fasthttp v1.57.0
+	github.com/valyala/fasthttp v1.58.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -27,6 +27,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	golang.org/x/crypto v0.28.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/crypto v0.29.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
 )
