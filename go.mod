@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/ProtonMail/go-crypto v1.0.0
 	github.com/gofiber/fiber/v2 v2.52.5
-	github.com/mailru/easyjson v0.7.7
+	github.com/mailru/easyjson v0.9.0
 	github.com/rs/zerolog v1.33.0
 	github.com/urfave/cli/v2 v2.27.5
 	github.com/valyala/fasthttp v1.57.0
